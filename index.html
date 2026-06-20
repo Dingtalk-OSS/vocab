@@ -207,6 +207,34 @@
     .confirm-box { background:var(--card-bg); backdrop-filter:blur(30px); border:1px solid var(--input-border); border-radius:24px; padding:28px 24px; width:90%; max-width:340px; color:var(--text-primary); text-align:center; box-shadow:0 16px 48px rgba(0,0,0,0.3); }
     .confirm-box p { margin:12px 0 20px; font-size:1rem; line-height:1.5; color:var(--text-secondary); }
     .confirm-box .btn-group { justify-content:center; }
+    /* ===== 响应式：手机端适配 ===== */
+    @media (max-width: 480px) {
+      .difficulty-grid { grid-template-columns:1fr 1fr; gap:8px; }
+      .diff-card { padding:12px 8px; }
+      .diff-card .diff-desc { font-size:0.7rem; word-break:break-word; }
+      .top-bar { gap:6px; padding:6px 10px; font-size:0.8rem; }
+      .top-stat { font-size:0.78rem; }
+      .auth-panel, .auth-panel { padding:28px 16px; }
+      .modal-card { padding:24px 16px; }
+      .word-main { font-size:clamp(2rem, 8vw, 3.5rem); }
+    }
+    /* ===== 响应式：平板/电脑端适配 ===== */
+    @media (min-width: 768px) {
+      body { padding:40px 40px; }
+      .app { max-width:720px; }
+      .difficulty-grid { grid-template-columns:1fr 1fr 1fr; gap:14px; max-width:600px; }
+      .top-bar { gap:16px; padding:8px 24px; }
+      .top-stat { font-size:0.95rem; }
+      .auth-panel, .auth-panel { padding:48px 40px; border-radius:36px; }
+      .modal-card { padding:36px 32px; max-width:520px; }
+      .modal-card[style*="650px"] { max-width:650px; }
+      .btn { padding:14px 36px; }
+      .drawer { width:420px; }
+      .leaderboard-item { padding:12px 18px; }
+      .diff-card { padding:20px 16px; }
+      .chinese-card { font-size:1.3rem; padding:20px 28px; }
+      .result-score-main { font-size:3.5rem; }
+    }
   </style>
 </head>
 <body class="theme-pink-dark">

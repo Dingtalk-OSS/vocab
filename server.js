@@ -493,9 +493,10 @@ app.get('/api/v1/user/export-data', (req, res) => {
     const userId = getUserId(req);
     const user = db.prepare('SELECT username, display_name, tagline, created_at FROM users WHERE id = ?').get(userId);
     if (user.username !== 'Aaa') return res.status(403).json({ error: '无权限' });
-    const logs = db.prepare('SELECT word, phonetic, meaning, extended, chinese_sentence, user_translation, reference_sentence, score_total, score_grammar, score_word_choice, score_naturalness, time_spent, difficulty, is_practice, created_at FROM practice_logs WHERE user_id = ? ORDER BY created_at DESC').all(userId);
-    const challenges = db.prepare('SELECT duration, score, avg_score, word_count, total_time, created_at FROM challenge_results WHERE user_id = ? ORDER BY created_at DESC').all(userId);
-    res.json({ user, practice_logs: logs, challenges });
+    const allUsers = db.prepare('SELECT id, username, display_name, tagline, created_at FROM users').all();
+    const logs = db.prepare('SELECT user_id, word, phonetic, meaning, extended, chinese_sentence, user_translation, reference_sentence, score_total, score_grammar, score_word_choice, score_naturalness, time_spent, difficulty, is_practice, created_at FROM practice_logs ORDER BY created_at DESC').all();
+    const challenges = db.prepare('SELECT user_id, duration, score, avg_score, word_count, total_time, created_at FROM challenge_results ORDER BY created_at DESC').all();
+    res.json({ users: allUsers, practice_logs: logs, challenges });
   } catch (e) {
     if (e.message === '未登录') return res.status(401).json({ error: e.message });
     res.status(500).json({ error: e.message });
@@ -530,17 +531,27 @@ app.post('/api/v1/user/restore-data', (req, res) => {
     const userId = getUserId(req);
     const user = db.prepare('SELECT username FROM users WHERE id = ?').get(userId);
     if (user.username !== 'Aaa') return res.status(403).json({ error: '无权限' });
-    const logs = req.body || [];
-    if (!Array.isArray(logs)) return res.status(400).json({ error: '格式错误' });
+    const data = req.body;
+    if (!data || !data.practice_logs) return res.status(400).json({ error: '格式错误' });
     let count = 0;
-    const insert = db.prepare('INSERT OR IGNORE INTO practice_logs (user_id, word, phonetic, meaning, extended, chinese_sentence, user_translation, reference_sentence, score_total, score_grammar, score_word_choice, score_naturalness, time_spent, difficulty, is_practice) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
-    const tx = db.transaction(() => {
-      for (const log of logs) {
-        insert.run(userId, log.word || '', log.phonetic || '', log.meaning || '', log.extended || '', log.chinese_sentence || '', log.user_translation || '', log.reference_sentence || '', log.score_total || 0, log.score_grammar || 0, log.score_word_choice || 0, log.score_naturalness || 0, log.time_spent || 0, log.difficulty || 1, log.is_practice || 0);
-        count++;
+    // 恢复练习记录
+    if (Array.isArray(data.practice_logs)) {
+      const insertLog = db.prepare('INSERT OR IGNORE INTO practice_logs (user_id, word, phonetic, meaning, extended, chinese_sentence, user_translation, reference_sentence, score_total, score_grammar, score_word_choice, score_naturalness, time_spent, difficulty, is_practice) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
+      const tx = db.transaction(() => {
+        for (const log of data.practice_logs) {
+          insertLog.run(log.user_id || userId, log.word||'', log.phonetic||'', log.meaning||'', log.extended||'', log.chinese_sentence||'', log.user_translation||'', log.reference_sentence||'', log.score_total||0, log.score_grammar||0, log.score_word_choice||0, log.score_naturalness||0, log.time_spent||0, log.difficulty||1, log.is_practice||0);
+          count++;
+        }
+      });
+      tx();
+    }
+    // 恢复竞赛记录
+    if (Array.isArray(data.challenges)) {
+      const insertCh = db.prepare('INSERT OR IGNORE INTO challenge_results (user_id, duration, score, avg_score, word_count, total_time, details) VALUES (?,?,?,?,?,?,?)');
+      for (const ch of data.challenges) {
+        insertCh.run(ch.user_id || userId, ch.duration||30, ch.score||0, ch.avg_score||0, ch.word_count||0, ch.total_time||0, '');
       }
-    });
-    tx();
+    }
     res.json({ success: true, count });
   } catch (e) {
     if (e.message === '未登录') return res.status(401).json({ error: e.message });
