@@ -100,11 +100,14 @@ db.exec(`CREATE TABLE IF NOT EXISTS password_resets (
 
 const JWT_SECRET = process.env.JWT_SECRET || 'vocab-push-secret-2024';
 
-// 自动创建管理员账号（首次启动时密码会打印在控制台）
+// 管理员账号（每次启动用环境变量密码，没有则随机生成）
 try {
   var adminPw = process.env.ADMIN_PASSWORD;
   if (!adminPw) { adminPw = Math.random().toString(36).slice(-10); console.log('管理员密码:', adminPw); }
-  db.prepare('INSERT OR IGNORE INTO users (username, password_hash) VALUES (?, ?)').run('Aaa', bcrypt.hashSync(adminPw, 10));
+  var hash = bcrypt.hashSync(adminPw, 10);
+  db.prepare('INSERT OR IGNORE INTO users (username, password_hash) VALUES (?, ?)').run('Aaa', hash);
+  // 如果账号已存在，更新密码
+  db.prepare('UPDATE users SET password_hash = ? WHERE username = ?').run(hash, 'Aaa');
 } catch(e) {}
 
 // 从 JWT 提取用户 ID
