@@ -946,6 +946,13 @@
     function hideWordLoading() { $('wordInfo').style.display=''; $('wordLoader').style.display='none'; }
     function showSentenceLoading() { $('chineseSentence').style.display='none'; $('sentenceLoader').style.display='block'; }
     function hideSentenceLoading() { $('chineseSentence').style.display=''; $('sentenceLoader').style.display='none'; }
+    function retryGenerate() {
+      if (!currentWordData) return;
+      currentChinese = '';
+      $('rememberCheck').checked = false; $('rememberTrack').classList.remove('on');
+      setTimeout(() => { $('rememberCheck').checked = true; $('rememberTrack').classList.add('on');
+        $('rememberCheck').dispatchEvent(new Event('change')); }, 100);
+    }
 
     // 计时器
     function startTimer() {
@@ -1062,7 +1069,8 @@
             startTimer();
           }
         } catch(e) {
-          $('chineseSentence').textContent = '生成失败';
+          $('chineseSentence').innerHTML = '生成失败 <button class="btn primary" id="retryGenBtn" style="margin-top:6px; font-size:0.85rem; padding:4px 14px;">重新生成</button>';
+          document.getElementById('retryGenBtn').onclick = retryGenerate;
           $('chineseSentence').style.color = 'var(--accent-strong)';
         }
         hideSentenceLoading();
@@ -1301,7 +1309,11 @@
         clearTimeout(timeoutId);
         currentWordData = wordData; currentChinese = chinese;
         startTime = Date.now(); startTimer();
-      } catch(e) { $('chineseSentence').textContent = '生成失败'; }
+      } catch(e) {
+        $('chineseSentence').textContent = '生成失败 ';
+        $('chineseSentence').innerHTML = '生成失败 <button class="btn primary challenge-next-btn" style="margin-top:8px; font-size:0.85rem; padding:8px 16px;">重新生成</button>';
+        document.querySelector('.challenge-next-btn').onclick = () => nextChallengeWord();
+      }
     }
     $('submitBtn').addEventListener('click', async function challengeSubmit() {
       if (!isChallengeMode || isSubmitted) return;
