@@ -107,7 +107,11 @@ try {
   console.log('管理员密码:', adminPw);
   var hash = bcrypt.hashSync(adminPw, 10);
   db.prepare('INSERT OR IGNORE INTO users (username, password_hash) VALUES (?, ?)').run('Aaa', hash);
-  db.prepare('UPDATE users SET password_hash = ? WHERE username = ?').run(hash, 'Aaa');
+  var info = db.prepare('UPDATE users SET password_hash = ? WHERE username = ?').run(hash, 'Aaa');
+  console.log('管理员账号更新结果: changes=' + info.changes);
+  // 验证一下
+  var check = db.prepare('SELECT username FROM users WHERE username = ?').get('Aaa');
+  console.log('管理员账号是否存在:', check ? '是' : '否');
 } catch(e) { console.error('管理员账号初始化失败:', e.message); }
 
 // 从 JWT 提取用户 ID
