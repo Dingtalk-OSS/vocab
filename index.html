@@ -1317,7 +1317,7 @@
         isPracticeMode = origPractice;
         const score = result.score.total;
         challengeResults.push({ word: currentWordData.word, score, timeSpent });
-        $('chineseArea').classList.remove('expanded'); $('wordInfoWrapper').classList.remove('collapsed');
+        $('chineseArea').classList.remove('expanded');
         $('resultArea').style.display = 'block';
         const diffsHtml = (result.differences||[]).map(d => `<div style="padding:4px 0; font-size:0.85rem; border-bottom:1px solid var(--input-border);"><strong>${d.type}</strong> <span style="color:var(--text-secondary);">${d.error_text} → </span><span style="color:var(--accent);">${d.correction_text}</span><br><span style="color:var(--text-secondary); font-size:0.8rem;">${d.explanation}</span></div>`).join('');
         $('resultArea').innerHTML = `<div style="display:flex; gap:16px; margin-bottom:12px;"><div style="font-size:1.5rem; font-weight:700; color:var(--accent);">${score}分</div><div style="font-size:0.9rem; color:var(--text-secondary);">${result.correction.overall}</div></div><div style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:8px;">已完成 ${challengeResults.length} 题 · 用时 ${timeSpent}s</div>${diffsHtml}<button class="btn primary challenge-next-btn" style="margin-top:12px; width:100%;">下一题</button>`;
@@ -1328,6 +1328,7 @@
       $('markMemorizedBtn').style.display = '';
       const ta = document.querySelector('.toggle-area');
       if (ta) ta.style.display = '';
+      $('wordInfoWrapper').classList.remove('collapsed');
     }
     async function endChallenge() {
       isChallengeMode = false;
