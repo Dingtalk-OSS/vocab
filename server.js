@@ -306,7 +306,7 @@ app.get('/api/v1/leaderboard/avg-score', (req, res) => {
   const diffParam = difficulty > 0 ? [difficulty] : [];
   let query;
   if (limit > 0) {
-    const params = [limit, ...diffParam];
+    const params = [...diffParam, limit];
     query = db.prepare(`
       SELECT u.username, COUNT(l.id) as total_count, ROUND(AVG(l.score_total),1) as avg_score
       FROM users u JOIN (
@@ -346,7 +346,7 @@ app.get('/api/v1/leaderboard/avg-time', (req, res) => {
       ) l ON u.id = l.user_id AND l.rn <= ?
       GROUP BY u.id HAVING COUNT(*) >= 3
       ORDER BY avg_time ASC LIMIT 20
-    `).all(limit, ...diffParam);
+    `).all(...diffParam, limit);
   } else {
     query = db.prepare(`
       SELECT u.username, COUNT(l.id) as total_count, ROUND(AVG(l.time_spent),1) as avg_time

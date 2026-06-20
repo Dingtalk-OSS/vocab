@@ -1201,10 +1201,7 @@
       const word = await fetchWordFromAI();
       if (!word) throw new Error('获取单词失败');
       challengeUsedWords.push(word.word); // 记录已用单词，避免重复
-      $('wordText').textContent = word.word;
-      $('phoneticText').textContent = word.phonetic || '';
-      $('meaningText').textContent = word.meaning || '';
-      $('extendedMeaning').textContent = word.extended || '';
+      // 竞赛模式只显示中文句子，不显示单词
       const chinese = await generateChinese(word.word, word.meaning);
       $('chineseSentence').textContent = chinese;
       return { wordData: word, chinese };
@@ -1213,6 +1210,7 @@
       if (!isChallengeMode) return;
       $('submitBtn').disabled = false; isSubmitted = false;
       $('translateInput').value = ''; $('resultArea').style.display = 'none';
+      document.querySelectorAll('.challenge-next-btn').forEach(el => el.remove());
       try {
         const { wordData, chinese } = await loadChallengeSentence();
         currentWordData = wordData; currentChinese = chinese;
@@ -1236,8 +1234,8 @@
         $('chineseArea').classList.remove('expanded'); $('wordInfoWrapper').classList.remove('collapsed');
         $('resultArea').style.display = 'block';
         $('resultArea').innerHTML = `<div class="result-score-main">${score}分</div><div style="font-size:0.9rem; color:var(--text-secondary);">${result.correction.overall}</div><div style="font-size:0.85rem; color:var(--text-secondary); margin-top:8px;">已完成 ${challengeResults.length} 题</div>`;
-        // 1.5 秒后自动下一题
-        setTimeout(() => { if (isChallengeMode) nextChallengeWord(); }, 1500);
+        $('resultArea').innerHTML += `<button class="btn primary challenge-next-btn" style="margin-top:12px; width:100%;">下一题</button>`;
+        $('resultArea').querySelector('.challenge-next-btn').onclick = () => { if (isChallengeMode) nextChallengeWord(); };
       } catch(e) { $('resultArea').innerHTML = `<div class="error-text">${e.message}</div>`; $('submitBtn').disabled = false; isSubmitted = false; }
     });
     async function endChallenge() {
