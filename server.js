@@ -68,6 +68,7 @@ try { db.exec('ALTER TABLE practice_logs ADD COLUMN difficulty INTEGER DEFAULT 1
 try { db.exec('ALTER TABLE practice_logs ADD COLUMN is_practice INTEGER DEFAULT 0'); } catch(e) {}
 try { db.exec('ALTER TABLE users ADD COLUMN display_name TEXT DEFAULT NULL'); } catch(e) {}
 try { db.exec('ALTER TABLE users ADD COLUMN tagline TEXT DEFAULT NULL'); } catch(e) {}
+try { db.exec('ALTER TABLE users ADD COLUMN status TEXT DEFAULT "online"'); } catch(e) {}
 try { db.exec('UPDATE practice_logs SET difficulty = 1 WHERE difficulty IS NULL'); } catch(e) {}
 // 登录记录表
 db.exec(`CREATE TABLE IF NOT EXISTS login_logs (
@@ -90,13 +91,20 @@ db.exec(`CREATE TABLE IF NOT EXISTS challenge_results (
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id)
 )`);
+db.exec(`CREATE TABLE IF NOT EXISTS password_resets (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  username TEXT NOT NULL,
+  status TEXT DEFAULT 'pending',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+)`);
 
 const JWT_SECRET = process.env.JWT_SECRET || 'vocab-push-secret-2024';
 
-// 自动创建管理员账号
+// 自动创建管理员账号（首次启动时密码会打印在控制台）
 try {
-  const hash = bcrypt.hashSync('123369', 10);
-  db.prepare('INSERT OR IGNORE INTO users (username, password_hash) VALUES (?, ?)').run('Aaa', hash);
+  var adminPw = process.env.ADMIN_PASSWORD;
+  if (!adminPw) { adminPw = Math.random().toString(36).slice(-10); console.log('管理员密码:', adminPw); }
+  db.prepare('INSERT OR IGNORE INTO users (username, password_hash) VALUES (?, ?)').run('Aaa', bcrypt.hashSync(adminPw, 10));
 } catch(e) {}
 
 // 从 JWT 提取用户 ID
@@ -404,17 +412,17 @@ app.get('/api/v1/user/profile', (req, res) => {
     const targetUsername = req.query.username || '';
     if (targetUsername) {
       // 查看其他用户的公开资料
-      const user = db.prepare('SELECT id, username, display_name, tagline FROM users WHERE username = ?').get(targetUsername);
+      const user = db.prepare('SELECT id, username, display_name, tagline, status FROM users WHERE username = ?').get(targetUsername);
       if (!user) return res.status(404).json({ error: '用户不存在' });
       const stats = db.prepare(`SELECT COUNT(*) as total_count FROM practice_logs WHERE user_id = ? AND is_practice = 0`).get(user.id);
       const rankRow = db.prepare(`SELECT COUNT(*)+1 as rank FROM (SELECT user_id FROM practice_logs WHERE is_practice=0 GROUP BY user_id HAVING COUNT(*)>=3 AND AVG(score_total)>(SELECT AVG(score_total) FROM practice_logs WHERE user_id=? AND is_practice=0))`).get(user.id);
-      res.json({ username: user.username, display_name: user.display_name, tagline: user.tagline, total_count: stats.total_count, rank: rankRow.rank });
+      res.json({ username: user.username, display_name: user.display_name, tagline: user.tagline, status: user.status, total_count: stats.total_count, rank: rankRow.rank });
     } else {
       // 查看自己的资料
-      const user = db.prepare('SELECT id, username, display_name, tagline FROM users WHERE id = ?').get(viewerId);
+      const user = db.prepare('SELECT id, username, display_name, tagline, status FROM users WHERE id = ?').get(viewerId);
       const stats = db.prepare(`SELECT COUNT(*) as total_count FROM practice_logs WHERE user_id = ? AND is_practice = 0`).get(viewerId);
       const rankRow = db.prepare(`SELECT COUNT(*)+1 as rank FROM (SELECT user_id FROM practice_logs WHERE is_practice=0 GROUP BY user_id HAVING COUNT(*)>=3 AND AVG(score_total)>(SELECT AVG(score_total) FROM practice_logs WHERE user_id=? AND is_practice=0))`).get(viewerId);
-      res.json({ username: user.username, display_name: user.display_name, tagline: user.tagline, total_count: stats.total_count, rank: rankRow.rank });
+      res.json({ username: user.username, display_name: user.display_name, tagline: user.tagline, status: user.status, total_count: stats.total_count, rank: rankRow.rank });
     }
   } catch (e) {
     if (e.message === '未登录') return res.status(401).json({ error: e.message });
@@ -426,8 +434,8 @@ app.get('/api/v1/user/profile', (req, res) => {
 app.put('/api/v1/user/profile', (req, res) => {
   try {
     const userId = getUserId(req);
-    const { display_name, tagline } = req.body;
-    db.prepare('UPDATE users SET display_name = ?, tagline = ? WHERE id = ?').run(display_name || null, tagline || null, userId);
+    const { display_name, tagline, status } = req.body;
+    db.prepare('UPDATE users SET display_name = ?, tagline = ?, status = ? WHERE id = ?').run(display_name || null, tagline || null, status || 'online', userId);
     res.json({ success: true });
   } catch (e) {
     if (e.message === '未登录') return res.status(401).json({ error: e.message });
@@ -564,6 +572,62 @@ app.get('/api/v1/user/login-history', (req, res) => {
   try {
     const userId = getUserId(req);
     const rows = db.prepare('SELECT ip, created_at FROM login_logs WHERE user_id = ? ORDER BY created_at DESC LIMIT 50').all(userId);
+    res.json(rows);
+  } catch (e) {
+    if (e.message === '未登录') return res.status(401).json({ error: e.message });
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 忘记密码申请（无需登录）
+app.post('/api/v1/auth/forgot-password', (req, res) => {
+  try {
+    const { username } = req.body;
+    if (!username) return res.status(400).json({ error: '请输入用户名' });
+    db.prepare('INSERT INTO password_resets (username) VALUES (?)').run(username);
+    res.json({ success: true, message: '已向管理员发送重置申请' });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// 管理员：查看待处理的密码重置申请
+app.get('/api/v1/auth/admin/pending-resets', (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const user = db.prepare('SELECT username FROM users WHERE id = ?').get(userId);
+    if (user.username !== 'Aaa') return res.status(403).json({ error: '无权限' });
+    const rows = db.prepare("SELECT id, username, created_at FROM password_resets WHERE status = 'pending' ORDER BY created_at DESC").all();
+    res.json(rows);
+  } catch (e) {
+    if (e.message === '未登录') return res.status(401).json({ error: e.message });
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 管理员：重置用户密码为 123456
+app.post('/api/v1/auth/admin/reset-password', (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const user = db.prepare('SELECT username FROM users WHERE id = ?').get(userId);
+    if (user.username !== 'Aaa') return res.status(403).json({ error: '无权限' });
+    const { target_username, request_id } = req.body;
+    if (!target_username) return res.status(400).json({ error: '缺少用户名' });
+    const hash = bcrypt.hashSync('123456', 10);
+    db.prepare('UPDATE users SET password_hash = ? WHERE username = ?').run(hash, target_username);
+    if (request_id) db.prepare('UPDATE password_resets SET status = ? WHERE id = ?').run('done', request_id);
+    res.json({ success: true, message: '密码已重置为 123456' });
+  } catch (e) {
+    if (e.message === '未登录') return res.status(401).json({ error: e.message });
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 管理员：查看注册用户列表
+app.get('/api/v1/auth/admin/users', (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const user = db.prepare('SELECT username FROM users WHERE id = ?').get(userId);
+    if (user.username !== 'Aaa') return res.status(403).json({ error: '无权限' });
+    const rows = db.prepare('SELECT id, username, display_name, created_at FROM users ORDER BY id').all();
     res.json(rows);
   } catch (e) {
     if (e.message === '未登录') return res.status(401).json({ error: e.message });
