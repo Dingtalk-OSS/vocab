@@ -188,6 +188,16 @@ app.post('/api/v1/auth/register', async (req, res) => {
   }
 });
 
+// 调试管理员登录（无需限流，仅用于排查）
+app.post('/api/v1/auth/debug-admin', async (req, res) => {
+  try {
+    const user = db.prepare('SELECT username, password_hash FROM users WHERE username = ?').get('Aaa');
+    if (!user) return res.json({ exists: false, msg: 'Aaa 用户不存在' });
+    const valid = await bcrypt.compare('admin123', user.password_hash);
+    res.json({ exists: true, hash_matches_admin123: valid, hash_prefix: user.password_hash.substring(0, 20) + '...' });
+  } catch (e) { res.json({ error: e.message }); }
+});
+
 // 登录
 app.post('/api/v1/auth/login', async (req, res) => {
   try {
