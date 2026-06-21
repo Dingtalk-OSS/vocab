@@ -1634,8 +1634,7 @@
         } else { $('adminUserList').innerHTML = '<div class="empty-state">暂无用户</div>'; }
       }).catch(() => { $('adminPendingList').innerHTML = '<div class="error-text">加载失败</div>'; });
     }
-    $('adminPanelClose').addEventListener('click', () => $('adminPanelModal').style.display = 'none');
-    $('adminPanelBtn').addEventListener('click', () => { $('settingsDrawer').classList.remove('open'); $('adminPanelModal').style.display = 'flex'; loadAdminPanel(); });
+    // adminPanelBtn 由 addAdminButtons() 动态创建，此处不直接引用
     $('changeDifficultyBtn').addEventListener('click', () => {
       $('settingsDrawer').classList.remove('open');
       $('mainUI').style.display = 'none'; $('diffPanel').style.display = 'flex';
