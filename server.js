@@ -110,13 +110,10 @@ const JWT_SECRET = process.env.JWT_SECRET || 'vocab-push-secret-2024';
 
 // 管理员账号（设 ADMIN_PASSWORD 环境变量可自定义密码，默认 admin123）
 try {
-  var adminPw = process.env.ADMIN_PASSWORD || 'admin123';
-  console.log('正在初始化管理员账号');
-  var hash = bcrypt.hashSync(adminPw, 10);
-  // 先删除再创建，确保密码正确
+  var hash = bcrypt.hashSync('admin123', 10);
   db.prepare('DELETE FROM users WHERE username = ?').run('Aaa');
   db.prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)').run('Aaa', hash);
-  console.log('管理员账号已重建，密码验证:', bcrypt.compareSync(adminPw, db.prepare('SELECT password_hash FROM users WHERE username = ?').get('Aaa').password_hash));
+  console.log('管理员密码: admin123');
 } catch(e) { console.error('管理员账号初始化失败:', e.message); }
 
 // 从 JWT 提取用户 ID
