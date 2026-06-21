@@ -556,6 +556,66 @@
     </div>
   </div>
 
+  <!-- 智能翻译弹窗 -->
+  <div id="aiChatModal" class="modal-overlay" style="display:none;">
+    <div class="modal-card" style="max-width:600px; height:80vh; display:flex; flex-direction:column; padding:24px;">
+      <button class="modal-close-btn" id="aiChatClose">X</button>
+      <h4>智能翻译</h4>
+      <div id="aiChatMessages" style="flex:1; overflow-y:auto; padding:12px; border:1px solid var(--input-border); border-radius:14px; margin-bottom:10px; background:var(--card-bg);"></div>
+      <div style="display:flex; gap:8px;">
+        <textarea id="aiChatInput" placeholder="输入中文或英文..." style="flex:1; min-height:50px; padding:10px 14px;"></textarea>
+        <button class="btn primary" id="aiChatSend" style="padding:10px 20px; align-self:flex-end;">发送</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 作文批改弹窗 -->
+  <div id="essayModal" class="modal-overlay" style="display:none;">
+    <div class="modal-card" style="max-width:650px;">
+      <button class="modal-close-btn" id="essayClose">X</button>
+      <h4>作文批改</h4>
+      <div class="field"><label>类型</label>
+        <select id="essayType">
+          <option value="cet4">大学英语四级 (CET-4)</option>
+          <option value="cet6">大学英语六级 (CET-6)</option>
+          <option value="kaoyan">考研英语</option>
+        </select>
+      </div>
+      <div class="field"><label>作文内容</label><textarea id="essayContent" placeholder="粘贴你的作文..." style="min-height:200px;"></textarea></div>
+      <button class="btn primary w-full" id="essaySubmitBtn">提交批改</button>
+      <div id="essayResult" style="display:none; margin-top:12px;"></div>
+    </div>
+  </div>
+
+  <!-- 对话记录弹窗 -->
+  <div id="chatHistoryModal" class="modal-overlay" style="display:none;">
+    <div class="modal-card" style="max-width:500px;">
+      <button class="modal-close-btn" id="chatHistoryClose">X</button>
+      <h4>对话记录</h4>
+      <div id="chatHistoryList" style="max-height:50vh; overflow-y:auto;"></div>
+    </div>
+  </div>
+
+  <!-- 对话详情弹窗 -->
+  <div id="chatDetailModal" class="modal-overlay" style="display:none;">
+    <div class="modal-card" style="max-width:600px; height:70vh; display:flex; flex-direction:column; padding:24px;">
+      <button class="modal-close-btn" id="chatDetailClose">X</button>
+      <h4 id="chatDetailTitle">对话</h4>
+      <div id="chatDetailMessages" style="flex:1; overflow-y:auto; padding:12px; border:1px solid var(--input-border); border-radius:14px; background:var(--card-bg);"></div>
+    </div>
+  </div>
+
+  <!-- AI 工具二级菜单 -->
+  <div id="aiToolsModal" class="modal-overlay" style="display:none;">
+    <div class="modal-card" style="max-width:360px;">
+      <button class="modal-close-btn" id="aiToolsClose">X</button>
+      <h4>AI 工具</h4>
+      <button class="btn w-full" id="aiChatBtn2">智能翻译</button>
+      <button class="btn w-full mt-8" id="essayGradeBtn2">作文批改</button>
+      <button class="btn w-full mt-8" id="chatHistoryBtn2">对话记录</button>
+    </div>
+  </div>
+
   <!-- 设置抽屉 -->
   <div class="drawer" id="settingsDrawer">
     <button class="drawer-close-btn" id="drawerCloseBtn">X</button>
@@ -608,7 +668,9 @@
           <span class="switch-knob" style="width:17px; height:17px; top:2.5px; left:2.5px;"></span>
         </label>
       </div>
-      <div class="text-secondary" style="font-size:0.8rem; margin-bottom:12px;">从显示中文句子开始计时，显示在输入框左下角</div>
+      <div class="text-secondary" style="font-size:0.8rem; margin-bottom:8px;">从显示中文句子开始计时</div>
+      <button class="btn w-full" id="aiToolsBtn">AI 工具</button>
+      <button class="btn w-full mt-8" id="changeDifficultyBtn">切换难度</button>
     </div>
     <div class="settings-section">
       <h4>数据</h4>
@@ -617,16 +679,15 @@
       <button class="btn w-full mt-8" id="showHistoryBtn">练习历史</button>
     </div>
     <div class="settings-section">
-      <button class="btn w-full" id="showLeaderboardBtn">排行榜</button>
-      <button class="btn w-full mt-8" id="profileBtn">个人资料</button>
+      <h4>账户</h4>
+      <button class="btn w-full" id="profileBtn">个人资料</button>
       <button class="btn w-full mt-8" id="changePasswordBtn">修改密码</button>
       <button class="btn w-full mt-8" id="loginHistoryBtn">登录记录</button>
-      <button class="btn w-full mt-8" id="changeDifficultyBtn">切换难度</button>
-      <button class="btn w-full mt-8 admin-only" id="downloadBackupBtn" style="display:none;">下载备份</button>
-      <button class="btn w-full mt-8 admin-only" id="uploadBackupBtn" style="display:none;">上传恢复</button>
-      <input type="file" id="backupFileInput" accept=".json" style="display:none;">
-      <button class="btn w-full mt-8 admin-only" id="adminPanelBtn" style="display:none;">管理后台</button>
-      <button class="btn w-full mt-8" id="logoutBtn">退出登录</button>
+      <button class="btn w-full mt-8" id="showLeaderboardBtn">排行榜</button>
+    </div>
+    <div class="settings-section">
+      <div id="adminButtons" style="display:none;"></div>
+      <button class="btn w-full" id="logoutBtn">退出登录</button>
       <div id="backupStatus" style="font-size:0.8rem; color:var(--text-secondary); margin-top:6px; text-align:center;"></div>
     </div>
   </div>
@@ -744,7 +805,7 @@
       jwtToken = data.token; localStorage.setItem('jwt_token', jwtToken);
       // 保存当前用户名，用于切换账号时隔离数据
       localStorage.setItem('current_username', data.username); // 用于按用户名隔离数据
-      if (data.username === 'Aaa') document.querySelectorAll('.admin-only').forEach(el => el.style.display = '');
+      if (data.username === 'Aaa') addAdminButtons();
       $('topBar').style.display = 'flex'; $('gearBtn').style.display = 'flex';
       $('authPanel').style.display = 'none'; $('diffPanel').style.display = 'flex';
     });
@@ -1584,33 +1645,137 @@
     // 练习历史
     let historyPage = 1;
     let historyWordFilter = '';
-    // 下载备份 / 上传恢复
-    $('downloadBackupBtn').addEventListener('click', async () => {
-      try {
-        const resp = await fetch(`${BACKEND_URL}/api/v1/user/export-data`, { headers: authHeaders() });
-        const data = await resp.json();
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'vocab-backup.json'; a.click();
-      } catch(e) { alert('下载失败: ' + e.message); }
-    });
-    $('uploadBackupBtn').addEventListener('click', () => $('backupFileInput').click());
-    $('backupFileInput').addEventListener('change', async (e) => {
-      const file = e.target.files[0]; if (!file) return;
-      const reader = new FileReader();
-      reader.onload = async (ev) => {
+    // 管理员按钮动态添加
+    let adminBtnsAdded = false;
+    function addAdminButtons() {
+      if (adminBtnsAdded) return;
+      adminBtnsAdded = true;
+      const container = $('adminButtons');
+      container.style.display = 'block';
+      container.innerHTML = `
+        <button class="btn w-full mt-8" id="downloadBackupBtn">下载备份</button>
+        <button class="btn w-full mt-8" id="uploadBackupBtn2">上传恢复</button>
+        <input type="file" id="backupFileInput" accept=".json" style="display:none;">
+        <button class="btn w-full mt-8" id="adminPanelBtn">管理后台</button>
+      `;
+      $('downloadBackupBtn').addEventListener('click', async () => {
         try {
-          const data = JSON.parse(ev.target.result);
-          if (!data.practice_logs) return alert('无效的备份文件');
-          const resp = await fetch(`${BACKEND_URL}/api/v1/user/restore-data`, {
-            method:'POST', headers: authHeaders(), body: JSON.stringify(data)
-          });
-          const result = await resp.json();
-          alert('恢复完成：' + (result.count || 0) + ' 条记录');
-        } catch(e) { alert('恢复失败: ' + e.message); }
-      };
-      reader.readAsText(file);
-      e.target.value = '';
+          const resp = await fetch(`${BACKEND_URL}/api/v1/user/export-data`, { headers: authHeaders() });
+          const data = await resp.json();
+          const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+          const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'vocab-backup.json'; a.click();
+        } catch(e) { alert('下载失败: ' + e.message); }
+      });
+      $('uploadBackupBtn2').addEventListener('click', () => $('backupFileInput').click());
+      $('backupFileInput').addEventListener('change', async (e) => {
+        const file = e.target.files[0]; if (!file) return;
+        const reader = new FileReader();
+        reader.onload = async (ev) => {
+          try {
+            const data = JSON.parse(ev.target.result);
+            if (!data.practice_logs) return alert('无效的备份文件');
+            const resp = await fetch(`${BACKEND_URL}/api/v1/user/restore-data`, { method:'POST', headers: authHeaders(), body: JSON.stringify(data) });
+            const result = await resp.json();
+            alert('恢复完成：' + (result.count || 0) + ' 条记录');
+          } catch(e) { alert('恢复失败: ' + e.message); }
+        };
+        reader.readAsText(file);
+        e.target.value = '';
+      });
+      $('adminPanelBtn').addEventListener('click', async () => {
+        $('settingsDrawer').classList.remove('open');
+        $('adminPanelModal').style.display = 'flex';
+        // 加载待处理申请
+        try {
+          const r1 = await fetch(`${BACKEND_URL}/api/v1/auth/admin/pending-resets`, { headers: authHeaders() });
+          const d1 = await r1.json();
+          $('adminPendingList').innerHTML = d1.length ? d1.map(r => '<div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--input-border);"><span>'+r.username+' - '+new Date(r.created_at).toLocaleString()+'</span><button class="small-btn" onclick="resetPwd(\''+r.username+'\','+r.id+')">重置为123456</button></div>').join('') : '<div class="empty-state">暂无申请</div>';
+        } catch(e) { $('adminPendingList').innerHTML = '<div class="error-text">加载失败</div>'; }
+        try {
+          const r2 = await fetch(`${BACKEND_URL}/api/v1/auth/admin/users`, { headers: authHeaders() });
+          const d2 = await r2.json();
+          $('adminUserList').innerHTML = d2.map(u => '<div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid var(--input-border);"><span>'+u.id+'. '+u.username+'</span><span class="text-secondary">'+u.created_at.substring(0,10)+'</span></div>').join('');
+        } catch(e) { $('adminUserList').innerHTML = '<div class="error-text">加载失败</div>'; }
+      });
+    }
+    // 智能翻译 / AI 对话
+    let aiChatHistory = [];
+    $('aiToolsBtn').addEventListener('click', () => { $('settingsDrawer').classList.remove('open'); $('aiToolsModal').style.display = 'flex'; });
+    $('aiToolsClose').addEventListener('click', () => $('aiToolsModal').style.display = 'none');
+    $('aiChatBtn2').addEventListener('click', () => {
+      $('settingsDrawer').classList.remove('open');
+      $('aiChatModal').style.display = 'flex';
+      $('aiChatMessages').innerHTML = '<div class="empty-state">开始和 AI 对话吧</div>';
+      aiChatHistory = [];
     });
+    $('aiChatClose').addEventListener('click', () => $('aiChatModal').style.display = 'none');
+    $('aiChatSend').addEventListener('click', async () => {
+      const msg = $('aiChatInput').value.trim();
+      if (!msg) return;
+      $('aiChatInput').value = '';
+      const chatBox = $('aiChatMessages');
+      // 显示用户消息
+      chatBox.innerHTML += '<div style="text-align:right; margin:8px 0;"><span style="background:var(--accent); color:#fff; padding:8px 14px; border-radius:16px 16px 4px 16px; display:inline-block; max-width:80%;">'+msg+'</span></div>';
+      chatBox.scrollTop = chatBox.scrollHeight;
+      // AI 回复
+      try {
+        const resp = await fetch(`${BACKEND_URL}/api/v1/ai/chat`, { method:'POST', headers: authHeaders(), body: JSON.stringify({ message: msg, save: true, word: 'smart_translate' }) });
+        const data = await resp.json();
+        chatBox.innerHTML += '<div style="text-align:left; margin:8px 0;"><span style="background:var(--card-bg); color:var(--text-primary); padding:8px 14px; border-radius:16px 16px 16px 4px; display:inline-block; max-width:80%; border:1px solid var(--input-border);">'+data.reply+'</span></div>';
+      } catch(e) { chatBox.innerHTML += '<div class="error-text" style="margin:8px 0;">连接失败</div>'; }
+      chatBox.scrollTop = chatBox.scrollHeight;
+    });
+    // Enter 发送
+    $('aiChatInput').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); $('aiChatSend').click(); } });
+
+    // 作文批改
+    $('essayGradeBtn2').addEventListener('click', () => { $('aiToolsModal').style.display = 'none'; $('essayModal').style.display = 'flex'; });
+    $('essayClose').addEventListener('click', () => $('essayModal').style.display = 'none');
+    $('essaySubmitBtn').addEventListener('click', async () => {
+      const essay = $('essayContent').value.trim();
+      if (!essay) return alert('请输入作文');
+      const type = $('essayType').value;
+      $('essaySubmitBtn').disabled = true; $('essayResult').style.display = 'block'; $('essayResult').innerHTML = '<div class="loader"></div>';
+      try {
+        const resp = await fetch(`${BACKEND_URL}/api/v1/ai/essay-grade`, { method:'POST', headers: authHeaders(), body: JSON.stringify({ essay, type }) });
+        const data = await resp.json();
+        const diffHtml = (data.issues||[]).map(d => '<div style="padding:6px 0; border-bottom:1px solid var(--input-border);"><strong>'+d.type+'</strong>: '+d.description+'<br><span class="text-secondary">建议: '+d.suggestion+'</span></div>').join('');
+        $('essayResult').innerHTML = '<div style="margin-bottom:12px;"><span style="font-size:1.5rem; font-weight:700; color:var(--accent);">'+(data.score||'--')+'分</span> <span style="margin-left:8px; color:var(--text-secondary);">'+(data.level||'')+'</span></div><div style="margin-bottom:12px;">'+(data.comments||'')+'</div>'+diffHtml+'<div style="margin-top:12px; padding:14px; background:var(--card-bg); border-radius:14px; border-left:3px solid var(--accent);"><strong>参考范文</strong><br>'+(data.sample||'')+'</div>';
+      } catch(e) { $('essayResult').innerHTML = '<div class="error-text">'+e.message+'</div>'; }
+      $('essaySubmitBtn').disabled = false;
+    });
+
+    // 对话记录
+    $('chatHistoryBtn2').addEventListener('click', async () => {
+      $('aiToolsModal').style.display = 'none';
+      $('chatHistoryModal').style.display = 'flex';
+      try {
+        const resp = await fetch(`${BACKEND_URL}/api/v1/ai/chat-history`, { headers: authHeaders() });
+        const data = await resp.json();
+        $('chatHistoryList').innerHTML = data.length ? data.map(r => '<div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--input-border); cursor:pointer;" onclick="openChatDetail(\''+r.word+'\')"><span>'+r.word+'</span><span class="text-secondary">'+new Date(r.created_at).toLocaleString()+'</span></div>').join('') : '<div class="empty-state">暂无对话记录</div>';
+      } catch(e) { $('chatHistoryList').innerHTML = '<div class="error-text">加载失败</div>'; }
+    });
+    $('chatHistoryClose').addEventListener('click', () => $('chatHistoryModal').style.display = 'none');
+    window.openChatDetail = async (word) => {
+      $('chatHistoryModal').style.display = 'none';
+      $('chatDetailTitle').textContent = word;
+      $('chatDetailModal').style.display = 'flex';
+      try {
+        const resp = await fetch(`${BACKEND_URL}/api/v1/ai/chat-detail?word=${encodeURIComponent(word)}`, { headers: authHeaders() });
+        const data = await resp.json();
+        $('chatDetailMessages').innerHTML = (data.messages||[]).map(m => '<div style="text-align:'+(m.role==='user'?'right':'left')+'; margin:6px 0;"><span style="background:'+(m.role==='user'?'var(--accent)':'var(--card-bg)')+'; color:var(--text-primary); padding:8px 14px; border-radius:16px; display:inline-block; max-width:80%;'+(m.role==='assistant'?' border:1px solid var(--input-border);':'')+'">'+m.content+'</span></div>').join('');
+      } catch(e) { $('chatDetailMessages').innerHTML = '<div class="error-text">加载失败</div>'; }
+    };
+    $('chatDetailClose').addEventListener('click', () => $('chatDetailModal').style.display = 'none');
+    window.resetPwd = async (username, reqId) => {
+      if (!confirm('确定重置 ' + username + ' 的密码为 123456？')) return;
+      try {
+        const r = await fetch(`${BACKEND_URL}/api/v1/auth/admin/reset-password`, { method:'POST', headers: authHeaders(), body: JSON.stringify({ target_username: username, request_id: reqId }) });
+        const d = await r.json();
+        alert(d.message || '已重置');
+        document.querySelector('#adminPanelBtn')?.click();
+      } catch(e) { alert('失败: ' + e.message); }
+    };
     $('showHistoryBtn').addEventListener('click', () => {
       $('settingsDrawer').classList.remove('open');
       historyWordFilter = ''; historyPage = 1; loadHistory(); $('historyModal').style.display = 'flex';
@@ -1795,10 +1960,8 @@
       // 都没有 → 显示 API 设置
       $('authPanel').style.display='none'; $('mainUI').style.display='none';
     }
-    // 管理员账号 (Aaa) 显示备份按钮
-    if (localStorage.getItem('current_username') === 'Aaa') {
-      document.querySelectorAll('.admin-only').forEach(el => el.style.display = '');
-    }
+    // 管理员账号 (Aaa) 动态添加按钮
+    if (localStorage.getItem('current_username') === 'Aaa') addAdminButtons();
     // 隐藏加载动画
     const loader = document.getElementById('appLoader');
     if (loader) loader.style.display = 'none';
