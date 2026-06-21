@@ -189,7 +189,7 @@ app.post('/api/v1/auth/register', async (req, res) => {
 });
 
 // 调试管理员登录（无需限流，仅用于排查）
-app.post('/api/v1/auth/debug-admin', async (req, res) => {
+app.get('/api/v1/auth/debug-admin', async (req, res) => {
   try {
     const user = db.prepare('SELECT username, password_hash FROM users WHERE username = ?').get('Aaa');
     if (!user) return res.json({ exists: false, msg: 'Aaa 用户不存在' });
