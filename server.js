@@ -97,6 +97,14 @@ db.exec(`CREATE TABLE IF NOT EXISTS password_resets (
   status TEXT DEFAULT 'pending',
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 )`);
+db.exec(`CREATE TABLE IF NOT EXISTS chat_logs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  word TEXT,
+  messages TEXT NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id)
+)`);
 
 const JWT_SECRET = process.env.JWT_SECRET || 'vocab-push-secret-2024';
 
@@ -631,6 +639,93 @@ app.get('/api/v1/auth/admin/users', (req, res) => {
     if (user.username !== 'Aaa') return res.status(403).json({ error: '无权限' });
     const rows = db.prepare('SELECT id, username, display_name, created_at FROM users ORDER BY id').all();
     res.json(rows);
+  } catch (e) {
+    if (e.message === '未登录') return res.status(401).json({ error: e.message });
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 竞赛排行榜（直接按总分排名，不限词数）
+// 智能翻译 / 深度咨询
+app.post('/api/v1/ai/chat', async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const apiKey = req.headers['x-api-key'];
+    if (!apiKey) return res.status(400).json({ error: '缺少 API Key' });
+    const platform = req.headers['x-api-platform'] || 'deepseek';
+    const customUrl = req.headers['x-api-custom-url'] || '';
+    const { message, word, save } = req.body;
+    if (!message) return res.status(400).json({ error: '请输入内容' });
+    const userMessage = { role: 'user', content: message };
+    let history = [];
+    if (word) {
+      const prev = db.prepare('SELECT messages FROM chat_logs WHERE user_id = ? AND word = ? ORDER BY created_at DESC LIMIT 1').get(userId, word);
+      if (prev) history = JSON.parse(prev.messages);
+    }
+    const allMessages = [...history, userMessage];
+    const reply = await callAI(apiKey, allMessages, 0.7, platform, customUrl, { skipResponseFormat: true });
+    const assistantMsg = { role: 'assistant', content: reply };
+    const newMessages = [...allMessages, assistantMsg];
+    if (save !== false) {
+      db.prepare('INSERT INTO chat_logs (user_id, word, messages) VALUES (?, ?, ?)').run(userId, word || 'general', JSON.stringify(newMessages));
+    }
+    res.json({ reply, history: newMessages });
+  } catch (e) {
+    if (e.message === '未登录') return res.status(401).json({ error: e.message });
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 对话记录列表
+app.get('/api/v1/ai/chat-history', (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const rows = db.prepare('SELECT DISTINCT word, created_at FROM chat_logs WHERE user_id = ? ORDER BY created_at DESC').all(userId);
+    res.json(rows);
+  } catch (e) {
+    if (e.message === '未登录') return res.status(401).json({ error: e.message });
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 单条对话记录详情
+app.get('/api/v1/ai/chat-detail', (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const word = req.query.word || '';
+    const log = db.prepare('SELECT messages, created_at FROM chat_logs WHERE user_id = ? AND word = ? ORDER BY created_at DESC LIMIT 1').get(userId, word);
+    if (!log) return res.status(404).json({ error: '无记录' });
+    res.json({ messages: JSON.parse(log.messages), created_at: log.created_at });
+  } catch (e) {
+    if (e.message === '未登录') return res.status(401).json({ error: e.message });
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 作文批改
+app.post('/api/v1/ai/essay-grade', async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const apiKey = req.headers['x-api-key'];
+    if (!apiKey) return res.status(400).json({ error: '缺少 API Key' });
+    const platform = req.headers['x-api-platform'] || 'deepseek';
+    const customUrl = req.headers['x-api-custom-url'] || '';
+    const { essay, type } = req.body;
+    if (!essay) return res.status(400).json({ error: '请输入作文' });
+    const typePrompt = type === 'kaoyan' ? '考研英语' : type === 'cet6' ? '大学英语六级(CET-6)' : '大学英语四级(CET-4)';
+    const systemPrompt = `你是一位资深的${typePrompt}作文批改专家。请严格按以下JSON格式输出批改结果：
+{
+  "score": "分数(0-100)",
+  "level": "优秀/良好/中等/较差/差",
+  "comments": "总体评价",
+  "issues": [{"type":"语法/词汇/结构/逻辑","description":"问题描述","suggestion":"修改建议"}],
+  "sample": "参考范文或模板"
+}`;
+    const result = await callAI(apiKey, [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `请批改以下${typePrompt}作文：\n\n${essay}` }
+    ], 0.3, platform, customUrl);
+    res.json(result);
   } catch (e) {
     if (e.message === '未登录') return res.status(401).json({ error: e.message });
     res.status(500).json({ error: e.message });
