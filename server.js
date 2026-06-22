@@ -427,6 +427,7 @@ app.post('/api/v1/words/generate', async (req, res) => {
     const diffPrompt = DIFFICULTY_PROMPTS[diffToNum(diffStr)] || DIFFICULTY_PROMPTS[1];
 
     let resultWord = '';
+    let result = null;
 
     if (specificWord) {
       resultWord = specificWord;
