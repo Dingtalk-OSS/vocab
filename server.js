@@ -106,13 +106,71 @@ db.exec(`CREATE TABLE IF NOT EXISTS chat_logs (
   FOREIGN KEY (user_id) REFERENCES users(id)
 )`);
 
+// 用户AI生成记录表（用于去重）
+db.exec(`CREATE TABLE IF NOT EXISTS user_generated (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  type TEXT NOT NULL,
+  content TEXT NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id)
+)`);
+try { db.exec('CREATE INDEX IF NOT EXISTS idx_user_generated_lookup ON user_generated(user_id, type, content)'); } catch(e) {}
+
+// 词库表（管理员维护的单词池）
+db.exec(`CREATE TABLE IF NOT EXISTS word_bank (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  word TEXT NOT NULL,
+  difficulty TEXT NOT NULL,
+  added_by TEXT DEFAULT 'admin',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(word, difficulty)
+)`);
+
+// 用户已练单词表（按用户+单词+难度标记已练，三字段全匹配才排除）
+db.exec(`CREATE TABLE IF NOT EXISTS user_practiced_words (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  word TEXT NOT NULL,
+  difficulty TEXT NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(user_id, word, difficulty),
+  FOREIGN KEY (user_id) REFERENCES users(id)
+)`);
+
+// 预填词库（INSERT OR IGNORE 避免重复）
+try {
+  const insertWord = db.prepare('INSERT OR IGNORE INTO word_bank (word, difficulty) VALUES (?, ?)');
+  // L1 — 基础日常
+  ['hello','goodbye','thank','please','sorry','yes','no','help','water','food','eat','drink','sleep','walk','run','big','small','hot','cold','good','bad','new','old','love','happy','sad','fast','slow','hard','easy','day','night','book','door','window','chair','table','pen','paper','dog','cat','fish','bird','tree','flower','sun','moon','star','rain','snow','friend','school','home','shop','road','water','fire','hand','foot','head','eye','ear','mouth','mother','father','sister','brother','garden','kitchen','bedroom','bathroom','hospital','park','zoo'].forEach(w => insertWord.run(w, 'L1'));
+  // L2 — 日常进阶
+  ['information','temperature','important','different','beautiful','wonderful','dangerous','famous','favorite','popular','weather','season','holiday','vacation','traffic','accident','repair','service','receive','remember','believe','decide','expect','explain','follow','happen','improve','invite','offer','prepare','protect','suggest','support','accept','allow','continue','control','discuss','encourage','introduce','performance','knowledge','experience','practice','exercise','example','language','message','picture','problem','question','answer','person','people','family','world','country'].forEach(w => insertWord.run(w, 'L2'));
+  // L3 — 中阶通用
+  ['environment','education','technology','development','government','population','production','transportation','communication','entertainment','opportunity','responsibility','achievement','announcement','appointment','competition','conversation','celebration','experiment','instrument','arrangement','requirement','agreement','department','equipment','management','advertisement','conference','application','experience','condition','position','situation','relation','decision','division','connection','direction','attention','election','solution','pollution','construction','instruction','collection'].forEach(w => insertWord.run(w, 'L3'));
+  // L4 — 学术论述
+  ['analysis','hypothesis','methodology','perspective','theoretical','empirical','quantitative','qualitative','significant','implication','correlation','variable','phenomenon','paradigm','ideology','discourse','synthesis','evaluation','implementation','interpretation','investigation','demonstration','justification','verification','classification','modification','representation','characteristic','constitutional','controversial'].forEach(w => insertWord.run(w, 'L4'));
+  // L5 — 文学艺术
+  ['metaphor','allegory','narrative','protagonist','antagonist','symbolism','irony','paradox','eloquence','aesthetic','ambiguity','nostalgia','melancholy','resilience','vulnerability','compassion','contemplation','transcendence','corruption','redemption'].forEach(w => insertWord.run(w, 'L5'));
+  // L6 — 文化创译
+  ['juxtaposition','idiosyncrasy','effervescence','ephemeral','surreptitious','ubiquitous','dichotomy','amalgamation','disenfranchise','extrapolate'].forEach(w => insertWord.run(w, 'L6'));
+  // CET4
+  ['abandon','ability','abroad','absence','absolute','absorb','abstract','abundant','academic','accelerate','access','accommodate','accompany','accomplish','account','accumulate','accurate','accuse','achieve','acknowledge','acquire','adapt','adequate','adjust','administration','admit','adopt','advance','advantage','advertise','advise','affect','afford','agency','agree','agriculture','aircraft','alarm','alert','allocate','allowance','alter','alternative','ambition','amount','amuse','analyze','ancestor','angle','anniversary','announce','annual','anxiety','apparent','appeal','appetite','appliance','application','appoint','appreciate','approach','appropriate','approve','approximate','argue','arise','arrange','arrest','article','artificial','aspect','assemble','assess','assign','assist','associate','assume','assure','atmosphere','attach','attempt','attend','attitude','attract','attribute','audience','authority','automatic','available','avenue','average','avoid','award','aware','awful'].forEach(w => insertWord.run(w, 'CET4'));
+  // CET6
+  ['controversy','coordinate','copyright','corporate','correspond','counsel','counterpart','courtesy','criterion','crucial','cultivate','curriculum','declaration','dedicate','deficiency','deficit','defy','degenerate','delegate','deliberate','demonstrate','denote','deny','depict','deposit','deprive','derive','descend','designate','desperate','destiny','destruction','detach','deteriorate','diagnose','dictate','dignity','dilemma','diminish','diploma','directory','discard','discharge','discipline','disclose','discrimination','disguise','dismiss','disorder','disperse','displace','dispute','dissolve','distinct','distort','distract','distribute','disturbance','diverse','document','domain','domestic','dominant','donation','dramatic','drastic','duration','dynamic','elaborate','eliminate','embrace','emerge','emphasis','empirical','endeavor','enforce','engage','enhance','enormous','enterprise','enthusiasm','equivalent','erosion','essential','establish','evaluate','evident','evolve','exaggerate','exceed','exclude','execute','exemplify','exotic','exploit','explore','exposure','extend','extensive','external','extraordinary'].forEach(w => insertWord.run(w, 'CET6'));
+  // 考研
+  ['abolish','absorb','abstract','absurd','abundance','accelerate','accommodate','accumulate','acknowledge','acquisition','activate','adaptation','adhere','adjacent','administer','adolescent','adverse','advocate','aesthetic','affiliate','aggregate','aggravate','alienate','allege','alleviate','allocate','alternate','ambiguous','amend','amplify','analogy','anchor','applicable','appraisal','ascertain','aspiration','assert','assessment','assign','assimilate','assumption','attribute','authentic','authorize','bankruptcy','bewilder','bias','boundary','breakthrough','calculation','capability','category','certify','chronic','circulation','clarify','classification','cluster','cognitive','coincidence','collaborate','commemorate','commence','compatible','compensate','complement','compliance','component','compound','comprehensive','compulsory','conceive','conception','confine','conform','confront','conscience','conscious','consecutive','consensus','conserve','consolidate','conspicuous','constitute','consult','consume','contemplate','contemporary','contradiction','contribute','controversy','convenient','convention','converge','conversion','conviction','cooperate','coordinate','copyright','correlate','correspond','counsel','crucial','cultivate','cumulative','curriculum','database','deadline','debate','deceive','decent','decisive','declaration','decline','decorate','decrease','dedicate','deem','default','defeat','defect','deficiency','deficit','define','definite','delegate','deliberate','delicate','demonstrate','denote','deny','depict','deposit','deprive','derive','descend','describe','deserve','designate','desperate','despise','destination','destruction','detail','detain','detect','deteriorate','determine','device','devote','diagnose','dictate','differ','differentiate','diffuse','digest','dignity','dilemma','diligent','diminish','diploma','disable','disappear','disaster','discard','discern','discipline','disclose','discount','discourse','discover','discrimination','disguise','dismiss','disorder','disperse','displace','display','dispose','dispute','dissolve','distinct','distinguish','distort','distract','distribute','disturbance','diverse','divert','document','domestic','dominant','dominate','donation','dormant','dramatic','drastic','duration','dynamic','elaborate','elastic','elegance','eliminate','embrace','emerge','emergency','emission','emotion','emphasis','empirical','employee','enable','enclose','encounter','endeavor','endorse','endure','enforce','engage','enhance','enormous','enrich','ensure','enterprise','entertainment','enthusiasm','entity','entrepreneur','entry','environment','epidemic','episode','equivalent','era','erosion','essential','establish','estate','estimate','eternal','ethical','evaluate','evident','evolve','exaggerate','exceed','excel','exception','excerpt','excessive','exchange','exclude','execute','exemplify','exert','exhaust','exhibit','expand','expedition','expenditure','experiment','expertise','expiration','explicit','exploit','exploration','explosion','export','expose','exposure','extend','extensive','extent','exterior','external','extinct','extraordinary','extreme'].forEach(w => insertWord.run(w, 'kaoyan'));
+  console.log('词库初始化完成');
+} catch(e) { console.error('词库初始化失败:', e.message); }
+
 const JWT_SECRET = process.env.JWT_SECRET || 'vocab-push-secret-2024';
 
 // 管理员账号（设 ADMIN_PASSWORD 环境变量可自定义密码，默认 admin123）
 try {
   var hash = bcrypt.hashSync('admin123', 10);
-  db.prepare('DELETE FROM users WHERE username = ?').run('Aaa');
-  db.prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)').run('Aaa', hash);
+  var adminResult = db.prepare('UPDATE users SET password_hash = ? WHERE username = ?').run(hash, 'Aaa');
+  if (adminResult.changes === 0) {
+    db.prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)').run('Aaa', hash);
+  }
   console.log('管理员密码: admin123');
 } catch(e) { console.error('管理员账号初始化失败:', e.message); }
 
@@ -243,7 +301,120 @@ const DIFFICULTY_PROMPTS = {
   6: '文化融汇级：品牌Slogan、广告、古诗词，文字极度凝练，需文化背景理解。'
 };
 
+// 智能翻译专业提示词（按标准分级）
+const TRANSLATE_PROMPTS = {
+  cet4: `你是一位资深的大学英语四级(CET-4)翻译专家，严格遵循以下标准：
+
+【词汇范围】
+1. 仅使用CET-4大纲词汇（约4500词），以高中词汇和四级核心词汇为主
+2. 严禁使用超纲词、生僻词、低频学术词汇
+3. 如原文包含超纲概念，用四级大纲内的词汇进行解释性翻译
+4. 优先选择最常用、最基础的表达方式，避免炫技
+
+【句式规范】
+1. 以简单句和并列句为核心，适当使用定语从句和宾语从句
+2. 单句长度控制在15-25词以内，严禁出现过长复合句
+3. 使用基础时态（一般现在时、一般过去时、一般将来时、现在完成时）
+4. 避免使用虚拟语气、倒装句、独立主格结构、分词的复合结构
+5. 语态以主动为主，被动语态仅在必要时使用
+6. 逻辑关系使用基础连接词（and, but, so, because, when, if）
+
+【翻译原则】
+1. 忠实传达原文核心意思，不增译不删译
+2. 语言通顺自然，符合英语基本表达习惯
+3. 正确处理中英文基本差异（中文多用主动、英文可适当用被动）
+4. 中文流水句应合理拆分为英文短句
+5. 注意主谓一致、名词单复数、冠词使用等基础语法
+
+【评分标准参考】
+- 90-100分：无任何语法错误，用词精准，句式得当，译文流畅
+- 80-89分：极少量轻微语法瑕疵，整体表达清晰
+- 70-79分：存在少量语法或用词问题，但不影响理解
+- 60-69分：有较多语法错误，核心意思仍可识别
+- 60分以下：严重语法错误，或偏离原文意思
+
+请严格按照以上CET-4标准翻译以下内容，输出JSON格式：{"translation":"翻译结果","notes":"翻译要点说明（词汇/句式/技巧）"}`,
+
+  cet6: `你是一位资深的大学英语六级(CET-6)翻译专家，严格遵循以下标准：
+
+【词汇范围】
+1. 使用CET-6大纲词汇（约6000词），合理搭配四级基础词汇和六级提升词汇
+2. 适当使用学术词汇和正式书面表达（如 utilize, demonstrate, consequently 等）
+3. 词汇选择注重多样性和丰富度，避免同一词汇反复出现
+4. 可运用固定搭配和短语动词展示语言驾驭能力
+5. 对文化负载词和习语进行恰当转化
+
+【句式规范】
+1. 允许使用多种复合句：定语从句、名词性从句、状语从句、非谓语结构
+2. 可适度使用被动语态和强调句型（It is...that..., What...is...）
+3. 句子结构可以有适当复杂度，但需保证清晰易懂
+4. 合理运用连接词和过渡语展示逻辑层次（however, moreover, consequently, in contrast）
+5. 可运用并列、对比、因果、让步等逻辑关系
+6. 时态运用准确且丰富，包括完成进行时、过去完成时等
+
+【翻译原则】
+1. 准确传达原文含义，尤其注意抽象概念和文化特定概念的处理
+2. 运用翻译技巧：词性转换（名词转动词等）、语序调整（定语后置等）
+3. 保持原文的语体和风格，正式文体用正式英文，描述性文体用生动语言
+4. 注意中英文衔接手段的差异，适当使用替代、省略、连接
+5. 确保全文风格统一，语气一致
+
+【评分标准参考】
+- 90-100分：语法精准、词汇丰富、句式多样、表达地道、文体恰当
+- 80-89分：少量瑕疵但不影响整体质量，翻译策略运用得当
+- 70-79分：部分用词或句式可优化，但核心意思表达清楚
+- 60-69分：有明显不足，多处表达可改进
+- 60分以下：严重偏离评分标准
+
+请严格按照以上CET-6标准翻译以下内容，输出JSON格式：{"translation":"翻译结果","notes":"翻译要点说明（词汇/句式/技巧）"}`,
+
+  kaoyan: `你是一位资深的考研英语翻译专家，严格遵循以下标准：
+
+【词汇范围】
+1. 使用考研英语大纲词汇（约5500词，侧重学术词汇和正式用语）
+2. 精确辨析近义词，选择最贴合语境和语体的词汇
+3. 注重词汇的搭配关系和使用语境（collocation and register）
+4. 正确处理一词多义、熟词生义和词义引申
+5. 可适当运用成语和固定表达，但需保证准确性和恰当性
+6. 学术词汇和正式表达占比应合理体现
+
+【句式规范】
+1. 允许使用长难句：多重复合句、嵌套从句、并列复合结构
+2. 可运用高级语法手段：虚拟语气、倒装、强调、省略、分隔结构
+3. 句子结构应有层次感和逻辑递进，主次分明
+4. 合理运用语篇衔接手段：照应、替代、省略、连接、词汇衔接
+5. 长短句交错，避免单调句式重复
+6. 时态和语态使用精确，体现英语时体态系统的完整性
+
+【翻译策略】
+1. 词性转换：根据英语表达习惯灵活转换（中文动词→英文名词、中文形容词→英文介词短语等）
+2. 语序调整：正确处理中英文核心差异（定语位置、状语顺序、否定转移、否定前置）
+3. 增词减词：根据英文表达需要适当增删（增加主语、连接词；省略量词、范畴词）
+4. 分译合译：中文长句合理拆分，中文短句适当合并，断句重组
+5. 正反表达：正说反译、反说正译的处理
+6. 文化转换：文化特定概念采用意译、解释性翻译或加注策略
+7. 语篇重构：超越句子层面，在语篇层面进行结构调整和逻辑重组
+
+【翻译原则】
+1. 理解准确：深入理解原文的词汇含义、语法关系、逻辑关系和语境含义
+2. 表达精炼：译文简洁有力，不说废话，不拖泥带水
+3. 逻辑清晰：译文逻辑关系明确，衔接自然，层次分明
+4. 风格对应：原文风格在译文中得到准确再现（正式/非正式、文学/非文学）
+
+【评分标准参考】
+- 90-100分：理解完全准确，表达精炼地道，翻译策略运用纯熟，文体恰如其分
+- 80-89分：理解准确，表达流畅，翻译策略运用得当，仅个别细节可优化
+- 70-79分：理解基本准确，表达尚可，部分翻译策略运用不够纯熟
+- 60-69分：存在理解偏差或表达不足，需进一步提升翻译技巧
+- 60分以下：严重理解错误或表达混乱
+
+请严格按照以上考研英语标准翻译以下内容，输出JSON格式：{"translation":"翻译结果","notes":"翻译要点说明（词汇/句式/技巧）"}`,
+};
+
 // 生成单词
+// 难度字符串→数值映射（用于 AI prompt 分级）
+function diffToNum(s) { return {L1:1,L2:2,L3:3,L4:4,L5:5,L6:6,CET4:4,CET6:5,kaoyan:6}[s] || 1; }
+
 app.post('/api/v1/words/generate', async (req, res) => {
   try {
     const userId = getUserId(req);
@@ -251,24 +422,67 @@ app.post('/api/v1/words/generate', async (req, res) => {
     if (!apiKey) return res.status(400).json({ error: '缺少 API Key' });
     const platform = req.headers['x-api-platform'] || 'deepseek';
     const customUrl = req.headers['x-api-custom-url'] || '';
-    const difficulty = parseInt(req.body.difficulty) || 1;
+    const diffStr = req.body.difficulty || 'L1';
     const specificWord = req.body.word || '';
-    const diffPrompt = DIFFICULTY_PROMPTS[difficulty] || DIFFICULTY_PROMPTS[1];
-    const wordPrompt = specificWord
-      ? `提供以下单词的详细信息：${specificWord}`
-      : `随机生成一个匹配该难度的英语单词`;
-    const result = await callAI(apiKey, [
-      { role: 'system', content: '你是一个英语单词信息提供者，只输出JSON，不要其他文字。' },
-      { role: 'user', content: `难度：${diffPrompt}\n${wordPrompt}，并提供：单词、音标、中文释义（简短）、延展释义（详细的中文解释或用法，不要包含任何例句或句子）。严格JSON：{"word":"...","phonetic":"...","meaning":"...","extended":"..."}` }
-    ], 1.2, platform, customUrl);
-    res.json({ ...result, difficulty });
+    const diffPrompt = DIFFICULTY_PROMPTS[diffToNum(diffStr)] || DIFFICULTY_PROMPTS[1];
+
+    let resultWord = '';
+
+    if (specificWord) {
+      resultWord = specificWord;
+    } else {
+      // 从词库随机抽词，排除该用户该难度已练过的
+      const row = db.prepare(`SELECT word FROM word_bank WHERE difficulty = ? AND word NOT IN (SELECT word FROM user_practiced_words WHERE user_id = ? AND difficulty = ?) ORDER BY RANDOM() LIMIT 1`).get(diffStr, userId, diffStr);
+      if (row) {
+        resultWord = row.word;
+      } else {
+        // 词库无可用词 → AI 随机生成（最多尝试 5 次避开 user_practiced_words）
+        const excludeWords = [];
+        for (let i = 0; i < 5; i++) {
+          const hint = excludeWords.length ? `\n不要生成：${excludeWords.join('、')}` : '';
+          const tmp = await callAI(apiKey, [
+            { role:'system', content:'你是一个英语单词信息提供者，只输出JSON。' },
+            { role:'user', content:`难度：${diffPrompt}\n随机生成一个匹配该难度的英语单词${hint}，并提供音标、中文释义、延展用法。JSON：{"word":"...","phonetic":"...","meaning":"...","extended":"..."}` }
+          ], 1.2, platform, customUrl);
+          const dup = db.prepare('SELECT id FROM user_practiced_words WHERE user_id=? AND word=? AND difficulty=?').get(userId, tmp.word, diffStr);
+          if (!dup) { resultWord = tmp.word; result = tmp; break; }
+          excludeWords.push(tmp.word);
+        }
+        if (!resultWord) { result = tmp; resultWord = tmp.word; }
+      }
+    }
+
+    // 有 resultWord 但还没调用 AI 获取信息（词库抽的词需要生成音标释义）
+    if (!result) {
+      result = await callAI(apiKey, [
+        { role:'system', content:'你是一个英语单词信息提供者，只输出JSON。' },
+        { role:'user', content:`提供以下单词的详细信息：${resultWord}。输出音标、中文释义（简短）、延展释义。JSON：{"word":"${resultWord}","phonetic":"...","meaning":"...","extended":"..."}` }
+      ], 1.2, platform, customUrl);
+    }
+
+    // 保存到 user_practiced_words（仅当不是练习模式或需要记录时）
+    if (resultWord) {
+      db.prepare('INSERT OR IGNORE INTO user_practiced_words (user_id, word, difficulty) VALUES (?, ?, ?)').run(userId, resultWord, diffStr);
+    }
+    res.json({ ...result, difficulty: diffStr });
   } catch (e) {
     if (e.message === '未登录') return res.status(401).json({ error: e.message });
     res.status(500).json({ error: e.message });
   }
 });
 
-// 生成中文句子
+// AI 语义相似度检测（句子去重用）
+async function isSentenceSimilar(apiKey, platform, customUrl, userId, newSentence) {
+  const existing = db.prepare('SELECT content FROM user_generated WHERE user_id = ? AND type = ? ORDER BY created_at DESC LIMIT 30').all(userId, 'sentence');
+  if (!existing.length) return false;
+  const result = await callAI(apiKey, [
+    { role: 'system', content: '判断两个句子的语义是否相同或极其相似。只输出JSON。' },
+    { role: 'user', content: `已有句子：${existing.map(e => e.content).join(' || ')}\n\n新句子：${newSentence}\n\n新句子是否与任何一个已有句子的语义相同或极其相似？如果是，回答true；如果不是，回答false。JSON格式：{"is_similar":false}` }
+  ], 0.1, platform, customUrl);
+  return result.is_similar === true;
+}
+
+// 生成中文句子（带语义去重）
 app.post('/api/v1/sentences/generate', async (req, res) => {
   try {
     const userId = getUserId(req);
@@ -279,10 +493,19 @@ app.post('/api/v1/sentences/generate', async (req, res) => {
     const { word, meaning, difficulty } = req.body;
     if (!word || !meaning) return res.status(400).json({ error: '缺少参数' });
     const diffPrompt = DIFFICULTY_PROMPTS[parseInt(difficulty)||1] || DIFFICULTY_PROMPTS[1];
-    const result = await callAI(apiKey, [
-      { role: 'system', content: '你是中文出题助手，只输出JSON。' },
-      { role: 'user', content: `难度：${diffPrompt}\n单词：${word}\n释义：${meaning}\n生成一个匹配该难度的中文句子，10-30字，不包含英文。JSON：{"chinese_sentence":"..."}` }
-    ], 0.3, platform, customUrl);
+    // 去重生成：最多尝试 5 次（每次需额外 AI 判断语义）
+    let result, attempts = 0;
+    while (attempts < 5) {
+      result = await callAI(apiKey, [
+        { role: 'system', content: '你是中文出题助手，只输出JSON。' },
+        { role: 'user', content: `难度：${diffPrompt}\n单词：${word}\n释义：${meaning}\n生成一个匹配该难度的中文句子，10-30字，不包含英文。JSON：{"chinese_sentence":"..."}` }
+      ], 0.3, platform, customUrl);
+      const similar = await isSentenceSimilar(apiKey, platform, customUrl, userId, result.chinese_sentence);
+      if (!similar) break;
+      attempts++;
+    }
+    // 保存到 user_generated
+    db.prepare('INSERT INTO user_generated (user_id, type, content) VALUES (?, ?, ?)').run(userId, 'sentence', result.chinese_sentence);
     res.json(result);
   } catch (e) {
     if (e.message === '未登录') return res.status(401).json({ error: e.message });
@@ -654,6 +877,76 @@ app.get('/api/v1/auth/admin/users', (req, res) => {
   }
 });
 
+// 管理员：词库管理 — 列表
+app.get('/api/v1/admin/words/list', (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const user = db.prepare('SELECT username FROM users WHERE id = ?').get(userId);
+    if (user?.username !== 'Aaa') return res.status(403).json({ error: '无权限' });
+    const diff = req.query.difficulty || '';
+    const search = req.query.search || '';
+    let sql = 'SELECT word, difficulty, created_at FROM word_bank';
+    const params = [];
+    const wheres = [];
+    if (diff) { wheres.push('difficulty = ?'); params.push(diff); }
+    if (search) { wheres.push('word LIKE ?'); params.push('%' + search + '%'); }
+    if (wheres.length) sql += ' WHERE ' + wheres.join(' AND ');
+    sql += ' ORDER BY word LIMIT 500';
+    const rows = db.prepare(sql).all(...params);
+    res.json(rows);
+  } catch (e) {
+    if (e.message === '未登录') return res.status(401).json({ error: e.message });
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 管理员：词库管理 — 添加单词
+app.post('/api/v1/admin/words/add', async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const user = db.prepare('SELECT username FROM users WHERE id = ?').get(userId);
+    if (user?.username !== 'Aaa') return res.status(403).json({ error: '无权限' });
+    const { word, difficulties } = req.body;
+    if (!word || !difficulties || !difficulties.length) return res.status(400).json({ error: '请填写单词和至少一个难度' });
+    const validDiffs = ['L1','L2','L3','L4','L5','L6','CET4','CET6','kaoyan'];
+    const toAdd = difficulties.filter(d => validDiffs.includes(d));
+    if (!toAdd.length) return res.status(400).json({ error: '无效的难度标签' });
+    let added = 0, skipped = 0;
+    const insert = db.prepare('INSERT OR IGNORE INTO word_bank (word, difficulty, added_by) VALUES (?, ?, ?)');
+    toAdd.forEach(d => {
+      const r = insert.run(word.toLowerCase().trim(), d, 'Aaa');
+      if (r.changes) added++; else skipped++;
+    });
+    res.json({ added, skipped, word });
+  } catch (e) {
+    if (e.message === '未登录') return res.status(401).json({ error: e.message });
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 管理员：词库管理 — 批量添加
+app.post('/api/v1/admin/words/batch', async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const user = db.prepare('SELECT username FROM users WHERE id = ?').get(userId);
+    if (user?.username !== 'Aaa') return res.status(403).json({ error: '无权限' });
+    const { words, difficulty } = req.body;
+    if (!words || !words.length || !difficulty) return res.status(400).json({ error: '请提供单词列表和难度' });
+    const validDiffs = ['L1','L2','L3','L4','L5','L6','CET4','CET6','kaoyan'];
+    if (!validDiffs.includes(difficulty)) return res.status(400).json({ error: '无效的难度标签' });
+    let added = 0, skipped = 0;
+    const insert = db.prepare('INSERT OR IGNORE INTO word_bank (word, difficulty, added_by) VALUES (?, ?, ?)');
+    words.forEach(w => {
+      const r = insert.run(w.toLowerCase().trim(), difficulty, 'Aaa');
+      if (r.changes) added++; else skipped++;
+    });
+    res.json({ added, skipped, difficulty });
+  } catch (e) {
+    if (e.message === '未登录') return res.status(401).json({ error: e.message });
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // 竞赛排行榜（直接按总分排名，不限词数）
 // 智能翻译 / 深度咨询
 app.post('/api/v1/ai/chat', async (req, res) => {
@@ -705,6 +998,64 @@ app.get('/api/v1/ai/chat-detail', (req, res) => {
     const log = db.prepare('SELECT messages, created_at FROM chat_logs WHERE user_id = ? AND word = ? ORDER BY created_at DESC LIMIT 1').get(userId, word);
     if (!log) return res.status(404).json({ error: '无记录' });
     res.json({ messages: JSON.parse(log.messages), created_at: log.created_at });
+  } catch (e) {
+    if (e.message === '未登录') return res.status(401).json({ error: e.message });
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 智能翻译（带标准分级）
+app.post('/api/v1/ai/smart-translate', async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const apiKey = req.headers['x-api-key'];
+    if (!apiKey) return res.status(400).json({ error: '缺少 API Key' });
+    const platform = req.headers['x-api-platform'] || 'deepseek';
+    const customUrl = req.headers['x-api-custom-url'] || '';
+    const { text, standard, direction } = req.body;
+    if (!text) return res.status(400).json({ error: '请输入翻译内容' });
+    const std = ['cet4','cet6','kaoyan'].includes(standard) ? standard : 'cet4';
+    const dirLabel = direction === 'en2zh' ? '英译中' : '中译英';
+    const systemPrompt = TRANSLATE_PROMPTS[std];
+    const userPrompt = direction === 'en2zh'
+      ? `请将以下英文翻译成中文（${dirLabel}，${std.toUpperCase()}标准）：\n\n${text}`
+      : `请将以下中文翻译成英文（${dirLabel}，${std.toUpperCase()}标准）：\n\n${text}`;
+    const result = await callAI(apiKey, [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt }
+    ], 0.3, platform, customUrl);
+    res.json(result);
+  } catch (e) {
+    if (e.message === '未登录') return res.status(401).json({ error: e.message });
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// AI 作文出题
+app.post('/api/v1/ai/essay-topic', async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const apiKey = req.headers['x-api-key'];
+    if (!apiKey) return res.status(400).json({ error: '缺少 API Key' });
+    const platform = req.headers['x-api-platform'] || 'deepseek';
+    const customUrl = req.headers['x-api-custom-url'] || '';
+    const { type } = req.body;
+    const typeLabel = type === 'kaoyan' ? '考研英语' : type === 'cet6' ? '大学英语六级(CET-6)' : '大学英语四级(CET-4)';
+    const result = await callAI(apiKey, [
+      { role: 'system', content: `你是一位${typeLabel}作文出题专家。请出一道符合${typeLabel}考试难度和风格的作文题目。
+
+要求：
+1. 题目必须贴近真实考试风格
+2. 包含清晰的题目说明和要求
+3. 给出写作要点提示（3-4点）
+4. 注明字数要求
+5. 内容紧跟社会热点或经典话题
+
+仅输出JSON格式：
+{"topic":"作文题目","requirements":"写作要求（包含字数、结构等）","tips":["要点1","要点2","要点3"],"background":"话题背景简介（1-2句）"}` },
+      { role: 'user', content: `请为${typeLabel}出一道作文题目。` }
+    ], 0.7, platform, customUrl);
+    res.json(result);
   } catch (e) {
     if (e.message === '未登录') return res.status(401).json({ error: e.message });
     res.status(500).json({ error: e.message });

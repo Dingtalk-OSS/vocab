@@ -124,7 +124,10 @@
     .drawer-close-btn { position:absolute; top:16px; right:16px; width:36px; height:36px; background:transparent; border:1px solid var(--input-border); border-radius:50%; color:var(--text-secondary); font-size:1.2rem; cursor:pointer; display:flex; align-items:center; justify-content:center; }
     .modal-overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); backdrop-filter:blur(6px); z-index:300; display:flex; align-items:center; justify-content:center; }
     .modal-card { background:var(--card-bg); backdrop-filter:blur(30px); border:1px solid var(--input-border); border-radius:28px; padding:32px 28px; width:90%; max-width:450px; max-height:70vh; overflow-y:auto; color:var(--text-primary); position:relative; }
-    .modal-close-btn { position:absolute; top:14px; right:14px; width:32px; height:32px; background:transparent; border:1px solid var(--input-border); border-radius:50%; color:var(--text-secondary); font-size:1rem; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+    .modal-close-btn { position:absolute; top:14px; right:14px; width:32px; height:32px; background:transparent; border:1px solid var(--input-border); border-radius:50%; color:var(--text-secondary); font-size:1rem; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.25s; }
+    .modal-close-btn:hover { background:var(--accent); color:#fff; border-color:var(--accent); transform:rotate(90deg) scale(1.1); }
+    .drawer-close-btn { position:absolute; top:16px; right:16px; width:36px; height:36px; background:transparent; border:1px solid var(--input-border); border-radius:50%; color:var(--text-secondary); font-size:1.2rem; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.25s; }
+    .drawer-close-btn:hover { background:var(--accent); color:#fff; border-color:var(--accent); transform:rotate(90deg) scale(1.1); }
     .gear-btn { position:fixed; bottom:25px; right:25px; width:50px; height:50px; background:var(--card-bg); backdrop-filter:blur(10px); border-radius:50%; display:flex; align-items:center; justify-content:center; color:var(--text-primary); border:1px solid var(--input-border); cursor:pointer; z-index:150; font-size:0.9rem; font-weight:600; transition:all 0.3s; }
     .gear-btn:hover { transform:rotate(30deg); background:var(--accent-light); box-shadow:0 0 0 1px var(--accent), 0 0 20px var(--accent-light); border-color:transparent; }
     .tab-btn { background:transparent; border:1px solid var(--accent); color:var(--text-primary); padding:6px 16px; border-radius:20px; cursor:pointer; margin:0 4px; }
@@ -304,12 +307,15 @@
       <div style="font-size:1.8rem; color:var(--text-primary); font-weight:600;">选择难度</div>
       <div style="color:var(--text-secondary); text-align:center; margin-bottom:4px;">选择一个难度层级开始闯关</div>
       <div class="difficulty-grid" id="diffGrid">
-        <div class="diff-card" data-diff="1"><div class="diff-num">L1</div><div class="diff-name">基础生存</div><div class="diff-desc">日常对话·简单句式</div></div>
-        <div class="diff-card" data-diff="2"><div class="diff-num">L2</div><div class="diff-name">通用信息</div><div class="diff-desc">新闻科普·中长句式</div></div>
-        <div class="diff-card" data-diff="3"><div class="diff-num">L3</div><div class="diff-name">专业技术</div><div class="diff-desc">法律医学·术语密集</div></div>
-        <div class="diff-card" data-diff="4"><div class="diff-num">L4</div><div class="diff-name">学术论述</div><div class="diff-desc">论文社论·逻辑嵌套</div></div>
-        <div class="diff-card" data-diff="5"><div class="diff-num">L5</div><div class="diff-name">文学艺术</div><div class="diff-desc">小说散文·修辞手法</div></div>
-        <div class="diff-card" data-diff="6"><div class="diff-num">L6</div><div class="diff-name">文化创译</div><div class="diff-desc">品牌广告·文化重构</div></div>
+        <div class="diff-card" data-diff="L1"><div class="diff-num">L1</div><div class="diff-name">基础生存</div><div class="diff-desc">日常对话·简单句式</div></div>
+        <div class="diff-card" data-diff="L2"><div class="diff-num">L2</div><div class="diff-name">通用信息</div><div class="diff-desc">新闻科普·中长句式</div></div>
+        <div class="diff-card" data-diff="L3"><div class="diff-num">L3</div><div class="diff-name">专业技术</div><div class="diff-desc">法律医学·术语密集</div></div>
+        <div class="diff-card" data-diff="L4"><div class="diff-num">L4</div><div class="diff-name">学术论述</div><div class="diff-desc">论文社论·逻辑嵌套</div></div>
+        <div class="diff-card" data-diff="L5"><div class="diff-num">L5</div><div class="diff-name">文学艺术</div><div class="diff-desc">小说散文·修辞手法</div></div>
+        <div class="diff-card" data-diff="L6"><div class="diff-num">L6</div><div class="diff-name">文化创译</div><div class="diff-desc">品牌广告·文化重构</div></div>
+        <div class="diff-card" data-diff="CET4"><div class="diff-num">CET-4</div><div class="diff-name">四级标准</div><div class="diff-desc">大学英语四级词汇</div></div>
+        <div class="diff-card" data-diff="CET6"><div class="diff-num">CET-6</div><div class="diff-name">六级标准</div><div class="diff-desc">大学英语六级词汇</div></div>
+        <div class="diff-card" data-diff="kaoyan"><div class="diff-num">考研</div><div class="diff-name">考研标准</div><div class="diff-desc">考研英语词汇</div></div>
       </div>
       <button class="btn primary" id="startChallengeBtn" style="display:none; margin-top:10px;">开始闯关</button>
     </div>
@@ -556,6 +562,72 @@
     </div>
   </div>
 
+  <!-- 词库管理弹窗（仅管理员） -->
+  <div id="wordBankModal" class="modal-overlay" style="display:none;">
+    <div class="modal-card" style="max-width:550px;">
+      <button class="modal-close-btn" id="wordBankClose">X</button>
+      <h4>词库管理</h4>
+      <!-- 添加单词 -->
+      <div style="border:1px solid var(--input-border); border-radius:14px; padding:16px; margin-bottom:14px;">
+        <div style="font-size:0.95rem; color:var(--text-primary); margin-bottom:10px; font-weight:500;">添加单词</div>
+        <div style="display:flex; gap:8px; margin-bottom:8px;">
+          <input type="text" id="wbWordInput" placeholder="输入单词..." style="flex:1;">
+          <button class="btn primary" id="wbAddBtn" style="padding:10px 20px;">添加</button>
+        </div>
+        <div style="display:flex; flex-wrap:wrap; gap:6px;" id="wbDiffCheckboxes">
+          <label style="font-size:0.85rem; display:flex; align-items:center; gap:4px; cursor:pointer;"><input type="checkbox" value="L1"> L1</label>
+          <label style="font-size:0.85rem; display:flex; align-items:center; gap:4px; cursor:pointer;"><input type="checkbox" value="L2"> L2</label>
+          <label style="font-size:0.85rem; display:flex; align-items:center; gap:4px; cursor:pointer;"><input type="checkbox" value="L3"> L3</label>
+          <label style="font-size:0.85rem; display:flex; align-items:center; gap:4px; cursor:pointer;"><input type="checkbox" value="L4"> L4</label>
+          <label style="font-size:0.85rem; display:flex; align-items:center; gap:4px; cursor:pointer;"><input type="checkbox" value="L5"> L5</label>
+          <label style="font-size:0.85rem; display:flex; align-items:center; gap:4px; cursor:pointer;"><input type="checkbox" value="L6"> L6</label>
+          <label style="font-size:0.85rem; display:flex; align-items:center; gap:4px; cursor:pointer;"><input type="checkbox" value="CET4"> CET-4</label>
+          <label style="font-size:0.85rem; display:flex; align-items:center; gap:4px; cursor:pointer;"><input type="checkbox" value="CET6"> CET-6</label>
+          <label style="font-size:0.85rem; display:flex; align-items:center; gap:4px; cursor:pointer;"><input type="checkbox" value="kaoyan"> 考研</label>
+        </div>
+        <div id="wbAddStatus" style="font-size:0.85rem; margin-top:6px;"></div>
+      </div>
+      <!-- 批量上传 -->
+      <div style="border:1px solid var(--input-border); border-radius:14px; padding:16px; margin-bottom:14px;">
+        <div style="font-size:0.95rem; color:var(--text-primary); margin-bottom:8px; font-weight:500;">批量上传</div>
+        <div style="display:flex; gap:8px; margin-bottom:8px;">
+          <select id="wbBatchDiff" style="flex:1;">
+            <option value="L1">L1</option>
+            <option value="L2">L2</option>
+            <option value="L3">L3</option>
+            <option value="L4">L4</option>
+            <option value="L5">L5</option>
+            <option value="L6">L6</option>
+            <option value="CET4">CET-4</option>
+            <option value="CET6">CET-6</option>
+            <option value="kaoyan">考研</option>
+          </select>
+          <input type="file" id="wbFileInput" accept=".txt,.csv" style="display:none;">
+          <button class="btn" id="wbUploadBtn" style="padding:10px 20px;">选择文件</button>
+        </div>
+        <div style="font-size:0.8rem; color:var(--text-secondary);">支持 .txt 或 .csv，每行一个单词</div>
+        <div id="wbBatchStatus" style="font-size:0.85rem; margin-top:6px;"></div>
+      </div>
+      <!-- 词库列表 -->
+      <div style="display:flex; gap:8px; margin-bottom:8px;">
+        <select id="wbFilterDiff" style="flex:1;">
+          <option value="">全部难度</option>
+          <option value="L1">L1</option>
+          <option value="L2">L2</option>
+          <option value="L3">L3</option>
+          <option value="L4">L4</option>
+          <option value="L5">L5</option>
+          <option value="L6">L6</option>
+          <option value="CET4">CET-4</option>
+          <option value="CET6">CET-6</option>
+          <option value="kaoyan">考研</option>
+        </select>
+        <input type="text" id="wbSearch" placeholder="搜索单词..." style="flex:1;">
+      </div>
+      <div id="wbWordList" style="max-height:30vh; overflow-y:auto; font-size:0.85rem;"></div>
+    </div>
+  </div>
+
   <!-- 智能翻译弹窗 -->
   <div id="aiChatModal" class="modal-overlay" style="display:none;">
     <div class="modal-card" style="max-width:600px; height:80vh; display:flex; flex-direction:column; padding:24px;">
@@ -581,7 +653,12 @@
           <option value="kaoyan">考研英语</option>
         </select>
       </div>
-      <div class="field"><label>作文内容</label><textarea id="essayContent" placeholder="粘贴你的作文..." style="min-height:200px;"></textarea></div>
+      <!-- 出题区 -->
+      <div id="essayTopicArea" style="margin-bottom:12px;">
+        <button class="btn w-full" id="essayGenerateTopicBtn">生成题目</button>
+        <div id="essayTopicDisplay" style="display:none; margin-top:10px; background:var(--card-bg); border-radius:14px; padding:14px 18px; border:1px solid var(--accent);"></div>
+      </div>
+      <div class="field"><label>作文内容</label><textarea id="essayContent" placeholder="先点击上方「生成题目」，然后在这里写作文..." style="min-height:200px;"></textarea></div>
       <button class="btn primary w-full" id="essaySubmitBtn">提交批改</button>
       <div id="essayResult" style="display:none; margin-top:12px;"></div>
     </div>
@@ -605,13 +682,49 @@
     </div>
   </div>
 
+  <!-- 智能翻译弹窗 -->
+  <div id="smartTranslateModal" class="modal-overlay" style="display:none;">
+    <div class="modal-card" style="max-width:600px;">
+      <button class="modal-close-btn" id="smartTranslateClose">X</button>
+      <h4>智能翻译</h4>
+      <div style="display:flex; gap:10px; margin-bottom:12px;">
+        <div class="field" style="flex:1; margin-bottom:0;">
+          <label>翻译方向</label>
+          <select id="stDirection">
+            <option value="zh2en">中译英</option>
+            <option value="en2zh">英译中</option>
+          </select>
+        </div>
+        <div class="field" style="flex:1; margin-bottom:0;">
+          <label>翻译标准</label>
+          <select id="stStandard">
+            <option value="cet4">CET-4（四级标准）</option>
+            <option value="cet6">CET-6（六级标准）</option>
+            <option value="kaoyan">考研英语标准</option>
+          </select>
+        </div>
+      </div>
+      <div class="field"><label>输入内容</label>
+        <textarea id="stInput" placeholder="请输入要翻译的内容..." style="min-height:120px;"></textarea>
+      </div>
+      <button class="btn primary w-full" id="stSubmitBtn">翻译</button>
+      <div id="stResult" style="display:none; margin-top:12px;">
+        <div class="field"><label>翻译结果</label>
+          <div id="stOutput" style="background:var(--card-bg); border-radius:14px; padding:14px 18px; border:1px solid var(--input-border); min-height:80px; white-space:pre-wrap; line-height:1.6;"></div>
+        </div>
+        <div id="stNotes" style="font-size:0.85rem; color:var(--text-secondary); margin-top:8px; padding:10px 14px; background:var(--accent-light); border-radius:12px; line-height:1.5;"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- AI 工具二级菜单 -->
   <div id="aiToolsModal" class="modal-overlay" style="display:none;">
     <div class="modal-card" style="max-width:360px;">
       <button class="modal-close-btn" id="aiToolsClose">X</button>
       <h4>AI 工具</h4>
-      <button class="btn w-full" id="aiChatBtn2">智能翻译</button>
+      <button class="btn w-full" id="smartTranslateBtn2">智能翻译</button>
       <button class="btn w-full mt-8" id="essayGradeBtn2">作文批改</button>
+      <button class="btn w-full mt-8" id="aiChatBtn2">AI 对话</button>
       <button class="btn w-full mt-8" id="chatHistoryBtn2">对话记录</button>
     </div>
   </div>
@@ -687,7 +800,7 @@
     </div>
     <div class="settings-section">
       <div id="adminButtons" style="display:none;"></div>
-      <button class="btn w-full" id="logoutBtn">退出登录</button>
+      <button class="btn w-full mt-8" id="logoutBtn">退出登录</button>
       <div id="backupStatus" style="font-size:0.8rem; color:var(--text-secondary); margin-top:6px; text-align:center;"></div>
     </div>
   </div>
@@ -708,7 +821,7 @@
     let timerPrompted = localStorage.getItem('vocab_timer_prompted') === 'true';
     let timerInterval = null;
     let timerWordCache = ''; // 缓存当前计时中的单词，同词反复查看不重置
-    let currentDifficulty = parseInt(localStorage.getItem('vocab_difficulty')) || 1;
+    let currentDifficulty = localStorage.getItem('vocab_difficulty') || 'L1';
     let isSubmitted = false; // 当前单词是否已批改
     let isPracticeMode = false; // 是否在已背单词练习模式中
     let practiceWords = [];
@@ -893,8 +1006,8 @@
     });
 
     // 难度选择
-    const DIFF_NAMES = {1:'基础生存',2:'通用信息',3:'专业技术',4:'学术论述',5:'文学艺术',6:'文化创译'};
-    const DIFF_DESCS = {1:'日常简单对话、标识标牌、菜单、基础邮件。句式简单，时态单一，语义直白。',2:'新闻简讯、旅游指南、通识类科普文章、非正式商务信函。涉及中长句，常用固定搭配。',3:'法律合同、医学报告、IT技术文档、金融研报。术语密度极高，句式程式化，容错率低。',4:'学术论文、哲学/社会学专著、深度社论、政策白皮书。逻辑嵌套深，涉及抽象概念。',5:'经典小说、散文、诗歌、戏剧剧本。大量修辞手法、双关、押韵，极具个人风格。',6:'品牌Slogan、广告Campaign、影视台词、古诗词典籍。需文化背景理解，文字凝练。'};
+    const DIFF_NAMES = {L1:'基础生存',L2:'通用信息',L3:'专业技术',L4:'学术论述',L5:'文学艺术',L6:'文化创译',CET4:'四级标准',CET6:'六级标准',kaoyan:'考研标准'};
+    const DIFF_DESCS = {L1:'日常简单对话、标识标牌、菜单、基础邮件。句式简单，时态单一，语义直白。',L2:'新闻简讯、旅游指南、通识类科普文章、非正式商务信函。涉及中长句，常用固定搭配。',L3:'法律合同、医学报告、IT技术文档、金融研报。术语密度极高，句式程式化，容错率低。',L4:'学术论文、哲学/社会学专著、深度社论、政策白皮书。逻辑嵌套深，涉及抽象概念。',L5:'经典小说、散文、诗歌、戏剧剧本。大量修辞手法、双关、押韵，极具个人风格。',L6:'品牌Slogan、广告Campaign、影视台词、古诗词典籍。需文化背景理解，文字凝练。',CET4:'大学英语四级大纲词汇，约4500词，适用于中级英语学习者。',CET6:'大学英语六级大纲词汇，约6000词，适用于中高级英语学习者。',kaoyan:'考研英语大纲词汇，约5500词，侧重学术词汇和长难句分析。'};
 
     // 各平台常用模型列表
     const PLATFORM_MODELS = {
@@ -921,9 +1034,9 @@
     // 悬停显示详情
     document.querySelectorAll('.diff-card').forEach(card => {
       card.addEventListener('mouseenter', (e) => {
-        const d = parseInt(card.dataset.diff);
+        const d = card.dataset.diff;
         const tooltip = $('diffTooltip');
-        $('diffTooltipTitle').textContent = 'L' + d + ' · ' + DIFF_NAMES[d];
+        $('diffTooltipTitle').textContent = d + ' · ' + DIFF_NAMES[d];
         $('diffTooltipDesc').textContent = DIFF_DESCS[d];
         const rect = card.getBoundingClientRect();
         tooltip.style.left = Math.min(rect.left + rect.width/2 - 180, window.innerWidth - 380) + 'px';
@@ -934,7 +1047,7 @@
       card.addEventListener('click', () => {
         document.querySelectorAll('.diff-card').forEach(c => c.classList.remove('selected'));
         card.classList.add('selected');
-        currentDifficulty = parseInt(card.dataset.diff);
+        currentDifficulty = card.dataset.diff;
         localStorage.setItem('vocab_difficulty', currentDifficulty);
         $('startChallengeBtn').style.display = 'flex';
       });
@@ -1634,11 +1747,11 @@
         } else { $('adminUserList').innerHTML = '<div class="empty-state">暂无用户</div>'; }
       }).catch(() => { $('adminPendingList').innerHTML = '<div class="error-text">加载失败</div>'; });
     }
-    // adminPanelBtn 由 addAdminButtons() 动态创建，此处不直接引用
+    $('adminPanelClose').addEventListener('click', () => $('adminPanelModal').style.display = 'none');
     $('changeDifficultyBtn').addEventListener('click', () => {
       $('settingsDrawer').classList.remove('open');
       $('mainUI').style.display = 'none'; $('diffPanel').style.display = 'flex';
-      document.querySelectorAll('.diff-card').forEach(c => c.classList.toggle('selected', parseInt(c.dataset.diff) === currentDifficulty));
+      document.querySelectorAll('.diff-card').forEach(c => c.classList.toggle('selected', c.dataset.diff === currentDifficulty));
       $('startChallengeBtn').style.display = document.querySelector('.diff-card.selected') ? 'flex' : 'none';
     });
     // 练习历史
@@ -1656,6 +1769,7 @@
         <button class="btn w-full mt-8" id="uploadBackupBtn2">上传恢复</button>
         <input type="file" id="backupFileInput" accept=".json" style="display:none;">
         <button class="btn w-full mt-8" id="adminPanelBtn">管理后台</button>
+        <button class="btn w-full mt-8" id="wordBankBtn">词库管理</button>
       `;
       $('downloadBackupBtn').addEventListener('click', async () => {
         try {
@@ -1696,7 +1810,58 @@
           $('adminUserList').innerHTML = d2.map(u => '<div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid var(--input-border);"><span>'+u.id+'. '+u.username+'</span><span class="text-secondary">'+u.created_at.substring(0,10)+'</span></div>').join('');
         } catch(e) { $('adminUserList').innerHTML = '<div class="error-text">加载失败</div>'; }
       });
+      // 词库管理按钮
+      $('wordBankBtn').addEventListener('click', () => {
+        $('settingsDrawer').classList.remove('open');
+        $('wordBankModal').style.display = 'flex';
+        loadWordBankList();
+      });
     }
+    // 词库管理逻辑
+    $('wordBankClose').addEventListener('click', () => $('wordBankModal').style.display = 'none');
+    async function loadWordBankList() {
+      const diff = $('wbFilterDiff').value;
+      const search = $('wbSearch').value.trim();
+      try {
+        const resp = await fetch(`${BACKEND_URL}/api/v1/admin/words/list?difficulty=${encodeURIComponent(diff)}&search=${encodeURIComponent(search)}`, { headers: authHeaders() });
+        const data = await resp.json();
+        if (!data.length) { $('wbWordList').innerHTML = '<div class="empty-state">暂无单词</div>'; return; }
+        $('wbWordList').innerHTML = data.map(r => '<div style="display:flex; justify-content:space-between; padding:5px 0; border-bottom:1px solid var(--input-border);"><span>'+r.word+'</span><span style="color:var(--text-secondary);font-size:0.8rem;">'+r.difficulty+'</span></div>').join('');
+      } catch(e) { $('wbWordList').innerHTML = '<div class="error-text">加载失败</div>'; }
+    }
+    $('wbFilterDiff').addEventListener('change', loadWordBankList);
+    $('wbSearch').addEventListener('input', loadWordBankList);
+    $('wbAddBtn').addEventListener('click', async () => {
+      const word = $('wbWordInput').value.trim();
+      if (!word) return;
+      const checked = [...document.querySelectorAll('#wbDiffCheckboxes input:checked')].map(c => c.value);
+      if (!checked.length) return alert('请勾选至少一个难度');
+      $('wbAddBtn').disabled = true; $('wbAddStatus').textContent = '添加中...';
+      try {
+        const resp = await fetch(`${BACKEND_URL}/api/v1/admin/words/add`, { method:'POST', headers: authHeaders(), body: JSON.stringify({ word, difficulties: checked }) });
+        const data = await resp.json();
+        $('wbAddStatus').textContent = data.error || `添加完成：新增 ${data.added} 个，跳过 ${data.skipped} 个`;
+        if (!data.error) { $('wbWordInput').value = ''; loadWordBankList(); }
+      } catch(e) { $('wbAddStatus').textContent = '添加失败'; }
+      $('wbAddBtn').disabled = false;
+    });
+    $('wbUploadBtn').addEventListener('click', () => $('wbFileInput').click());
+    $('wbFileInput').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const diff = $('wbBatchDiff').value;
+      const text = await file.text();
+      const words = text.split(/[\n\r,]+/).map(w => w.trim().toLowerCase()).filter(w => w && !w.startsWith('#'));
+      if (!words.length) { $('wbBatchStatus').textContent = '文件中没有有效单词'; return; }
+      $('wbBatchStatus').textContent = '上传中...';
+      try {
+        const resp = await fetch(`${BACKEND_URL}/api/v1/admin/words/batch`, { method:'POST', headers: authHeaders(), body: JSON.stringify({ words, difficulty: diff }) });
+        const data = await resp.json();
+        $('wbBatchStatus').textContent = data.error || `批量添加完成：新增 ${data.added} 个，跳过 ${data.skipped} 个（${diff}）`;
+        loadWordBankList();
+      } catch(e) { $('wbBatchStatus').textContent = '上传失败'; }
+      e.target.value = '';
+    });
     // 智能翻译 / AI 对话
     let aiChatHistory = [];
     $('aiToolsBtn').addEventListener('click', () => { $('settingsDrawer').classList.remove('open'); $('aiToolsModal').style.display = 'flex'; });
@@ -1727,16 +1892,65 @@
     // Enter 发送
     $('aiChatInput').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); $('aiChatSend').click(); } });
 
-    // 作文批改
-    $('essayGradeBtn2').addEventListener('click', () => { $('aiToolsModal').style.display = 'none'; $('essayModal').style.display = 'flex'; });
+    // 智能翻译（新）
+    $('smartTranslateBtn2').addEventListener('click', () => { $('aiToolsModal').style.display = 'none'; $('smartTranslateModal').style.display = 'flex'; $('stResult').style.display = 'none'; $('stInput').value = ''; });
+    $('smartTranslateClose').addEventListener('click', () => $('smartTranslateModal').style.display = 'none');
+    $('stSubmitBtn').addEventListener('click', async () => {
+      const text = $('stInput').value.trim();
+      if (!text) return alert('请输入要翻译的内容');
+      const standard = $('stStandard').value;
+      const direction = $('stDirection').value;
+      $('stSubmitBtn').disabled = true;
+      $('stResult').style.display = 'block'; $('stOutput').textContent = '翻译中...'; $('stNotes').textContent = '';
+      try {
+        const resp = await fetch(`${BACKEND_URL}/api/v1/ai/smart-translate`, {
+          method:'POST', headers: authHeaders(), body: JSON.stringify({ text, standard, direction })
+        });
+        const data = await resp.json();
+        if (data.error) throw new Error(data.error);
+        $('stOutput').textContent = data.translation || '（无结果）';
+        $('stNotes').textContent = data.notes ? '📝 ' + data.notes : '';
+      } catch(e) { $('stOutput').textContent = '翻译失败: ' + e.message; $('stNotes').textContent = ''; }
+      $('stSubmitBtn').disabled = false;
+    });
+    // Enter 发送翻译
+    $('stInput').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); $('stSubmitBtn').click(); } });
+
+    // 作文批改 — 出题 + 批改
+    let currentEssayTopic = '';
+    $('essayGradeBtn2').addEventListener('click', () => { $('aiToolsModal').style.display = 'none'; $('essayModal').style.display = 'flex'; $('essayTopicDisplay').style.display = 'none'; currentEssayTopic = ''; });
     $('essayClose').addEventListener('click', () => $('essayModal').style.display = 'none');
+    $('essayGenerateTopicBtn').addEventListener('click', async () => {
+      const type = $('essayType').value;
+      $('essayGenerateTopicBtn').disabled = true; $('essayGenerateTopicBtn').textContent = '生成中...';
+      $('essayTopicDisplay').style.display = 'block'; $('essayTopicDisplay').innerHTML = '<div class="loader"></div>';
+      try {
+        const resp = await fetch(`${BACKEND_URL}/api/v1/ai/essay-topic`, {
+          method:'POST', headers: authHeaders(), body: JSON.stringify({ type })
+        });
+        const data = await resp.json();
+        if (data.error) throw new Error(data.error);
+        currentEssayTopic = data.topic || '';
+        const tipsHtml = (data.tips||[]).map(t => '<li style="margin:4px 0;">' + t + '</li>').join('');
+        $('essayTopicDisplay').innerHTML = `
+          <div style="margin-bottom:8px;"><strong style="font-size:1.1rem; color:var(--accent);">📝 ${data.topic || ''}</strong></div>
+          ${data.background ? '<div style="font-size:0.9rem; color:var(--text-secondary); margin-bottom:8px;">' + data.background + '</div>' : ''}
+          <div style="font-size:0.9rem; color:var(--text-primary); margin-bottom:6px;">${data.requirements || ''}</div>
+          ${data.tips ? '<ul style="font-size:0.85rem; color:var(--text-secondary); padding-left:18px;">' + tipsHtml + '</ul>' : ''}
+        `;
+        $('essayContent').placeholder = '题目已生成，在这里写你的作文...';
+      } catch(e) { $('essayTopicDisplay').innerHTML = '<div class="error-text">生成失败: ' + e.message + '</div>'; }
+      $('essayGenerateTopicBtn').disabled = false; $('essayGenerateTopicBtn').textContent = '重新生成题目';
+    });
     $('essaySubmitBtn').addEventListener('click', async () => {
       const essay = $('essayContent').value.trim();
       if (!essay) return alert('请输入作文');
       const type = $('essayType').value;
       $('essaySubmitBtn').disabled = true; $('essayResult').style.display = 'block'; $('essayResult').innerHTML = '<div class="loader"></div>';
       try {
-        const resp = await fetch(`${BACKEND_URL}/api/v1/ai/essay-grade`, { method:'POST', headers: authHeaders(), body: JSON.stringify({ essay, type }) });
+        // 如果有题目，把题目标题一起发给 AI 做上下文
+        const fullEssay = currentEssayTopic ? '题目：' + currentEssayTopic + '\n\n' + essay : essay;
+        const resp = await fetch(`${BACKEND_URL}/api/v1/ai/essay-grade`, { method:'POST', headers: authHeaders(), body: JSON.stringify({ essay: fullEssay, type }) });
         const data = await resp.json();
         const diffHtml = (data.issues||[]).map(d => '<div style="padding:6px 0; border-bottom:1px solid var(--input-border);"><strong>'+d.type+'</strong>: '+d.description+'<br><span class="text-secondary">建议: '+d.suggestion+'</span></div>').join('');
         $('essayResult').innerHTML = '<div style="margin-bottom:12px;"><span style="font-size:1.5rem; font-weight:700; color:var(--accent);">'+(data.score||'--')+'分</span> <span style="margin-left:8px; color:var(--text-secondary);">'+(data.level||'')+'</span></div><div style="margin-bottom:12px;">'+(data.comments||'')+'</div>'+diffHtml+'<div style="margin-top:12px; padding:14px; background:var(--card-bg); border-radius:14px; border-left:3px solid var(--accent);"><strong>参考范文</strong><br>'+(data.sample||'')+'</div>';
@@ -1942,6 +2156,11 @@
     enhanceSelect('themeSelect');
     enhanceSelect('apiPlatformSelect');
     enhanceSelect('leaderboardLimit');
+    enhanceSelect('stDirection');
+    enhanceSelect('stStandard');
+    enhanceSelect('essayType');
+    enhanceSelect('wbBatchDiff');
+    enhanceSelect('wbFilterDiff');
 
     updateStats();
     // 新流程：API 设置 → 登录 → 难度选择 → 主界面
@@ -1950,7 +2169,7 @@
       $('topBar').style.display='flex'; $('gearBtn').style.display='flex';
       $('apiSetupPanel').style.display='none'; $('authPanel').style.display='none'; $('diffPanel').style.display='flex';
       // 高亮已保存的难度
-      document.querySelectorAll('.diff-card').forEach(c => c.classList.toggle('selected', parseInt(c.dataset.diff) === currentDifficulty));
+      document.querySelectorAll('.diff-card').forEach(c => c.classList.toggle('selected', c.dataset.diff === currentDifficulty));
       $('startChallengeBtn').style.display = document.querySelector('.diff-card.selected') ? 'flex' : 'none';
     } else if (userApiKey) {
       // 有 API Key 但没 JWT → 显示登录
