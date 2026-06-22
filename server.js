@@ -438,17 +438,18 @@ app.post('/api/v1/words/generate', async (req, res) => {
       } else {
         // 词库无可用词 → AI 随机生成（最多尝试 5 次避开 user_practiced_words）
         const excludeWords = [];
+        let fallbackResult = null;
         for (let i = 0; i < 5; i++) {
           const hint = excludeWords.length ? `\n不要生成：${excludeWords.join('、')}` : '';
-          const tmp = await callAI(apiKey, [
+          fallbackResult = await callAI(apiKey, [
             { role:'system', content:'你是一个英语单词信息提供者，只输出JSON。' },
             { role:'user', content:`难度：${diffPrompt}\n随机生成一个匹配该难度的英语单词${hint}，并提供音标、中文释义、延展用法。JSON：{"word":"...","phonetic":"...","meaning":"...","extended":"..."}` }
           ], 1.2, platform, customUrl);
-          const dup = db.prepare('SELECT id FROM user_practiced_words WHERE user_id=? AND word=? AND difficulty=?').get(userId, tmp.word, diffStr);
-          if (!dup) { resultWord = tmp.word; result = tmp; break; }
-          excludeWords.push(tmp.word);
+          const dup = db.prepare('SELECT id FROM user_practiced_words WHERE user_id=? AND word=? AND difficulty=?').get(userId, fallbackResult.word, diffStr);
+          if (!dup) { resultWord = fallbackResult.word; result = fallbackResult; break; }
+          excludeWords.push(fallbackResult.word);
         }
-        if (!resultWord) { result = tmp; resultWord = tmp.word; }
+        if (!resultWord && fallbackResult) { resultWord = fallbackResult.word; result = fallbackResult; }
       }
     }
 
