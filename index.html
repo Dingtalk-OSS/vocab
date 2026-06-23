@@ -660,6 +660,41 @@
     </div>
   </div>
 
+  <!-- 智能翻译弹窗 -->
+  <div id="smartTranslateModal" class="modal-overlay" style="display:none;">
+    <div class="modal-card" style="max-width:600px;">
+      <button class="btn" id="smartTranslateClose" style="position:absolute;top:14px;left:14px;padding:6px 14px;font-size:0.85rem;z-index:10;">← 返回</button>
+      <h4 style="margin-left:60px;">智能翻译</h4>
+      <div style="display:flex; gap:10px; margin-bottom:12px;">
+        <div class="field" style="flex:1; margin-bottom:0;">
+          <label>翻译方向</label>
+          <select id="stDirection">
+            <option value="zh2en">中译英</option>
+            <option value="en2zh">英译中</option>
+          </select>
+        </div>
+        <div class="field" style="flex:1; margin-bottom:0;">
+          <label>翻译标准</label>
+          <select id="stStandard">
+            <option value="cet4">CET-4（四级标准）</option>
+            <option value="cet6">CET-6（六级标准）</option>
+            <option value="kaoyan">考研英语标准</option>
+          </select>
+        </div>
+      </div>
+      <div class="field"><label>输入内容</label>
+        <textarea id="stInput" placeholder="请输入要翻译的内容..." style="min-height:120px;"></textarea>
+      </div>
+      <button class="btn primary w-full" id="stSubmitBtn">翻译</button>
+      <div id="stResult" style="display:none; margin-top:12px;">
+        <div class="field"><label>翻译结果</label>
+          <div id="stOutput" style="background:var(--card-bg); border-radius:14px; padding:14px 18px; border:1px solid var(--input-border); min-height:80px; white-space:pre-wrap; line-height:1.6;"></div>
+        </div>
+        <div id="stNotes" style="font-size:0.85rem; color:var(--text-secondary); margin-top:8px; padding:10px 14px; background:var(--accent-light); border-radius:12px; line-height:1.5;"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- 深入问答弹窗 -->
   <div id="deepQModal" class="modal-overlay" style="display:none;">
     <div class="modal-card" style="max-width:500px;">
