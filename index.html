@@ -2414,6 +2414,7 @@
       showConfirm('退出考试将丢失进度，确定退出？', () => {
         if (examTimerInterval) clearInterval(examTimerInterval);
         $('examModal').style.display = 'none';
+        $('diffPanel').style.display = 'flex';
         examState = null;
       });
     });
@@ -2423,18 +2424,35 @@
       const sTotal = (result.sentence_scores||[]).reduce((a,b) => a + (b.score||0), 0);
       const lTotal = (result.long_text_scores||[]).reduce((a,b) => a + (b.score||0), 0);
       const eScore = result.essay_score?.score || 0;
-      const badgeHtml = passed ? '<div style="text-align:center; margin:16px 0; padding:16px; background:linear-gradient(135deg,var(--accent-light),transparent); border-radius:16px; border:1px solid var(--accent);"><span style="font-size:2rem;">🏆</span><div style="font-size:1rem; color:var(--accent); font-weight:600; margin-top:6px;">获得 '+examState.difficulty+' 等级认证徽章！</div></div>' : '';
+      const diff = examState?.difficulty || '';
+      const badgeHtml = passed ? '<div style="text-align:center; margin:16px 0; padding:16px; background:linear-gradient(135deg,var(--accent-light),transparent); border-radius:16px; border:1px solid var(--accent);"><span style="font-size:2rem;">🏆</span><div style="font-size:1rem; color:var(--accent); font-weight:600; margin-top:6px;">获得 '+diff+' 等级认证徽章！</div></div>' : '';
+      // 带原文和批注的详细结果
       let sHtml = '';
+      const qs = examState?.questions;
       (result.sentence_scores||[]).forEach(s => {
-        sHtml += '<div style="padding:6px 0; border-bottom:1px solid var(--input-border); font-size:0.85rem;"><span style="color:var(--accent);">第'+s.id+'题</span> '+s.score+'/2分'+(s.errors ? ' <span style="color:var(--text-secondary);">'+s.errors+'</span>' : '')+'</div>';
+        const orig = qs?.sentences?.find(x => x.id === s.id);
+        const answer = examState?.answers?.sentences?.find(x => x.id === s.id);
+        sHtml += '<div style="padding:10px 0; border-bottom:1px solid var(--input-border);">'+
+          '<div style="display:flex;justify-content:space-between;"><span style="color:var(--accent);font-size:0.85rem;">第'+s.id+'题</span><span style="font-weight:600;color:'+(s.score>=2?'var(--accent)':'var(--accent-strong)')+';">'+s.score+'/2分</span></div>'+
+          (orig ? '<div style="color:var(--text-secondary);font-size:0.85rem;margin:4px 0;">原文: '+escHtml(orig.chinese)+'</div>' : '')+
+          (answer ? '<div style="color:var(--text-primary);font-size:0.9rem;margin:2px 0;">你的翻译: '+escHtml(answer.translation||'未作答')+'</div>' : '')+
+          (s.errors ? '<div style="color:var(--accent-strong);font-size:0.85rem;margin:2px 0;">批注: '+escHtml(s.errors)+'</div>' : '')+
+        '</div>';
       });
       let lHtml = '';
       (result.long_text_scores||[]).forEach(s => {
-        lHtml += '<div style="padding:6px 0; border-bottom:1px solid var(--input-border); font-size:0.85rem;"><span style="color:var(--accent);">长篇第'+s.id+'题</span> '+s.score+'/10分'+(s.errors ? ' <span style="color:var(--text-secondary);">'+s.errors+'</span>' : '')+'</div>';
+        const orig = qs?.long_texts?.find(x => x.id === s.id);
+        const answer = examState?.answers?.long_texts?.find(x => x.id === s.id);
+        lHtml += '<div style="padding:10px 0; border-bottom:1px solid var(--input-border);">'+
+          '<div style="display:flex;justify-content:space-between;"><span style="color:var(--accent);font-size:0.85rem;">长篇第'+s.id+'题</span><span style="font-weight:600;color:'+(s.score>=10?'var(--accent)':'var(--accent-strong)')+';">'+s.score+'/10分</span></div>'+
+          (orig ? '<div style="color:var(--text-secondary);font-size:0.85rem;margin:4px 0;">原文: '+escHtml(orig.chinese)+'</div>' : '')+
+          (answer ? '<div style="color:var(--text-primary);font-size:0.9rem;margin:2px 0;">你的翻译: '+escHtml(answer.translation||'未作答')+'</div>' : '')+
+          (s.errors ? '<div style="color:var(--accent-strong);font-size:0.85rem;margin:2px 0;">批注: '+escHtml(s.errors)+'</div>' : '')+
+        '</div>';
       });
       $('examResultContent').innerHTML =
         '<div style="text-align:center; margin-bottom:16px;">'+
-        '<div style="font-size:2.5rem; font-weight:700; color:'+(passed?'var(--accent)':'var(--text-secondary)')+';">'+Math.round(result.total_score)+'/300</div>'+
+        '<div style="font-size:2.5rem; font-weight:700; color:var(--accent);">'+Math.round(result.total_score)+'/300</div>'+
         '<div style="font-size:1.2rem; color:'+(passed?'var(--accent)':'var(--accent-strong)')+'; margin-top:4px;">'+(passed?'✓ 通过！获得徽章':'✗ 未通过，220分及格')+'</div>'+
         '</div>'+
         badgeHtml+
@@ -2446,7 +2464,7 @@
         '<div style="margin-bottom:12px; padding:12px; background:var(--card-bg); border-radius:12px; font-size:0.9rem; line-height:1.5;">'+(result.summary||'')+'</div>'+
         '<div style="margin-bottom:8px; font-weight:500;">单句详情</div>'+sHtml+
         '<div style="margin:12px 0 8px; font-weight:500;">长篇详情</div>'+lHtml+
-        (result.essay_score ? '<div style="margin:12px 0 8px; font-weight:500;">作文评语</div><div style="font-size:0.9rem; color:var(--text-secondary);">'+(result.essay_score.comment||'')+'</div>' : '');
+        (result.essay_score ? '<div style="margin:12px 0 8px; font-weight:500;">作文评语</div><div style="padding:12px;background:var(--card-bg);border-radius:12px;font-size:0.9rem;color:var(--text-secondary);">'+(result.essay_score.comment||'')+'</div>' : '');
     }
 
     
@@ -2472,12 +2490,13 @@
           '</div>'
         ).join('');
       } catch(e) { $('examHistoryList').innerHTML = '<div class="error-text">加载失败</div>'; }
+    }
+
+    // 关闭按钮
     $('examHistoryClose').addEventListener('click', () => $('examHistoryModal').style.display = 'none');
     $('examDetailClose').addEventListener('click', () => $('examDetailModal').style.display = 'none');
     $('wrongQClose').addEventListener('click', () => $('wrongQModal').style.display = 'none');
 
-    }
-    
     window.openExamDetail = async (id) => {
       $('examDetailModal').style.display = 'flex';
       $('examDetailContent').innerHTML = '<div class="loader"></div>';
