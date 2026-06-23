@@ -32,8 +32,20 @@ function validateUsername(name) {
   if (!name || name.length < 2 || name.length > 20) throw new Error('用户名长度需 2-20 个字符');
   if (/[<>"'&\\/]/.test(name)) throw new Error('用户名包含非法字符');
   if (/^[0-9]+$/.test(name)) throw new Error('用户名不能全为数字');
+  const profane = checkProfanity(name);
+  if (profane) throw new Error('用户名包含违规内容');
 }
 function sanitize(str) { return String(str).replace(/[<>"'&]/g, ''); }
+
+// 违禁词库（注册用户名/个性签名校验）
+const PROFANITY_LIST = ['fuck','shit','damn','ass','bitch','dick','porn','sex','xxx','nigga','bastard','crap','suck','wtf','stfu','admin','root','test','尼玛','他妈','傻逼','草泥马','操你','日你','fuck','shit','asshole','bitch','dickhead','pussy','cock','cunt','whore','slut'];
+function checkProfanity(text) {
+  const lower = String(text).toLowerCase().trim();
+  for (const word of PROFANITY_LIST) {
+    if (lower === word || lower.includes(word)) return word;
+  }
+  return null;
+}
 
 // 初始化数据库
 const db = new Database('data.db');
@@ -116,6 +128,36 @@ db.exec(`CREATE TABLE IF NOT EXISTS user_generated (
   FOREIGN KEY (user_id) REFERENCES users(id)
 )`);
 try { db.exec('CREATE INDEX IF NOT EXISTS idx_user_generated_lookup ON user_generated(user_id, type, content)'); } catch(e) {}
+
+// 等级考试成绩表
+db.exec(`CREATE TABLE IF NOT EXISTS exam_results (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  difficulty TEXT NOT NULL,
+  score REAL NOT NULL DEFAULT 0,
+  total_possible REAL DEFAULT 300,
+  passed INTEGER DEFAULT 0,
+  badge_earned INTEGER DEFAULT 0,
+  questions TEXT,
+  answers TEXT,
+  grading TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id)
+)`);
+db.exec(`CREATE TABLE IF NOT EXISTS exam_question_results (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  exam_id INTEGER NOT NULL,
+  question_type TEXT NOT NULL,
+  question_index INTEGER NOT NULL,
+  user_answer TEXT,
+  correct_answer TEXT DEFAULT '',
+  score REAL DEFAULT 0,
+  max_score REAL DEFAULT 2,
+  ai_feedback TEXT DEFAULT '',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (exam_id) REFERENCES exam_results(id)
+)`);
+try { db.exec('ALTER TABLE users ADD COLUMN exam_opt_out INTEGER DEFAULT 0'); } catch(e) {}
 
 // 词库表（管理员维护的单词池）
 db.exec(`CREATE TABLE IF NOT EXISTS word_bank (
@@ -541,7 +583,7 @@ app.post('/api/v1/translations/evaluate', async (req, res) => {
       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(
       userId, word, phonetic||'', meaning, extended||'', chinese_sentence, user_translation,
       result.correction.natural, result.score.total, result.score.grammar, result.score.word_choice, result.score.naturalness, time_spent||0,
-      parseInt(difficulty)||1, is_practice ? 1 : 0
+      difficulty||'L1', is_practice ? 1 : 0
     );
     res.json(result);
   } catch (e) {
@@ -551,11 +593,19 @@ app.post('/api/v1/translations/evaluate', async (req, res) => {
 });
 
 // 排行榜：平均分（支持 ?limit=N 统计最近 N 条，?difficulty=N 按难度筛选）
+function parseDiffParam(val) {
+  if (!val || val === '0') return { where: '', params: [] };
+  // 尝试数字匹配（L1-L6 存为数字 "1"-"6"），否则用原始字符串（CET4 等）
+  const n = parseInt(val);
+  if (!isNaN(n)) return { where: 'AND l.difficulty = ?', params: [n.toString()] };
+  return { where: 'AND l.difficulty = ?', params: [val] };
+}
+
 app.get('/api/v1/leaderboard/avg-score', (req, res) => {
   const limit = parseInt(req.query.limit) || 0;
-  const difficulty = parseInt(req.query.difficulty) || 0;
-  const diffWhere = difficulty > 0 ? 'AND l.difficulty = ?' : '';
-  const diffParam = difficulty > 0 ? [difficulty] : [];
+  const diff = parseDiffParam(req.query.difficulty);
+  const diffWhere = diff.where;
+  const diffParam = diff.params;
   let query;
   if (limit > 0) {
     const params = [...diffParam, limit];
@@ -584,9 +634,9 @@ app.get('/api/v1/leaderboard/avg-score', (req, res) => {
 // 排行榜：平均用时（支持 ?limit=N 统计最近 N 条，?difficulty=N 按难度筛选）
 app.get('/api/v1/leaderboard/avg-time', (req, res) => {
   const limit = parseInt(req.query.limit) || 0;
-  const difficulty = parseInt(req.query.difficulty) || 0;
-  const diffWhere = difficulty > 0 ? 'AND l.difficulty = ?' : '';
-  const diffParam = difficulty > 0 ? [difficulty] : [];
+  const diff = parseDiffParam(req.query.difficulty);
+  const diffWhere = diff.where;
+  const diffParam = diff.params;
   let query;
   if (limit > 0) {
     query = db.prepare(`
@@ -679,6 +729,10 @@ app.put('/api/v1/user/profile', (req, res) => {
   try {
     const userId = getUserId(req);
     const { display_name, tagline, status } = req.body;
+    if (tagline) {
+      const profane = checkProfanity(tagline);
+      if (profane) return res.status(400).json({ error: '个性签名包含违规内容' });
+    }
     db.prepare('UPDATE users SET display_name = ?, tagline = ?, status = ? WHERE id = ?').run(display_name || null, tagline || null, status || 'online', userId);
     res.json({ success: true });
   } catch (e) {
@@ -723,6 +777,22 @@ app.get('/api/v1/challenge/leaderboard', (req, res) => {
   }
 });
 
+
+
+// 考试排行榜
+app.get('/api/v1/leaderboard/exam', (req, res) => {
+  try {
+    const difficulty = req.query.difficulty || '';
+    let sql = 'SELECT u.username, COALESCE(u.display_name, u.username) as display_name, MAX(e.score) as best_score, e.difficulty, e.passed, (SELECT COUNT(*) FROM exam_results WHERE user_id = e.user_id AND passed = 1) as badge_count FROM exam_results e JOIN users u ON e.user_id = u.id';
+    const params = [];
+    if (difficulty) { sql += ' WHERE e.difficulty = ?'; params.push(difficulty); }
+    sql += ' GROUP BY e.user_id ORDER BY best_score DESC LIMIT 50';
+    const rows = db.prepare(sql).all(...params);
+    res.json(rows);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
 // 竞赛我的最佳
 app.get('/api/v1/challenge/my-best', (req, res) => {
   try {
@@ -1081,6 +1151,7 @@ app.post('/api/v1/ai/essay-grade', async (req, res) => {
   "level": "优秀/良好/中等/较差/差",
   "comments": "总体评价",
   "issues": [{"type":"语法/词汇/结构/逻辑","description":"问题描述","suggestion":"修改建议"}],
+  "annotated_text": "对原文逐句批注的HTML。删除的文字用<span class=\"essay-del\">标记，新增替换用<span class=\"essay-add\">标记，修改用<span class=\"essay-mod\">标记，纯新增用<span class=\"essay-ins\">标记。不包含外层div",
   "sample": "参考范文或模板"
 }`;
     const result = await callAI(apiKey, [
@@ -1090,6 +1161,196 @@ app.post('/api/v1/ai/essay-grade', async (req, res) => {
     res.json(result);
   } catch (e) {
     if (e.message === '未登录') return res.status(401).json({ error: e.message });
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ==== 等级考试系统 ====
+
+// 生成考试题目
+app.post('/api/v1/exam/generate', async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const apiKey = req.headers['x-api-key'];
+    if (!apiKey) return res.status(400).json({ error: '缺少 API Key' });
+    const platform = req.headers['x-api-platform'] || 'deepseek';
+    const customUrl = req.headers['x-api-custom-url'] || '';
+    const { difficulty } = req.body;
+    if (!difficulty) return res.status(400).json({ error: '请选择难度' });
+    const diffPrompt = DIFFICULTY_PROMPTS[diffToNum(difficulty)] || DIFFICULTY_PROMPTS[1];
+    const result = await callAI(apiKey, [
+      { role: 'system', content: `你是一位英语考试出题专家。请为${difficulty}难度生成一套翻译考试题。` },
+      { role: 'user', content: `难度：${diffPrompt}
+请生成以下内容，严格JSON格式：
+1. 50道单句翻译题（中文→英文，每句10-25字）
+2. 10道长文本翻译题（中文→英文，每段50-100字）
+3. 1道作文题
+
+JSON：{
+  "sentences": [{"id":1,"chinese":"中文句子"}],
+  "long_texts": [{"id":1,"chinese":"中文段落"}],
+  "essay": {"topic":"作文题目","requirement":"写作要求"}
+}` }
+    ], 0.5, platform, customUrl);
+    // 加 exam_session 标记
+    res.json({ success: true, difficulty, questions: result, generated_at: Date.now() });
+  } catch (e) {
+    if (e.message === '未登录') return res.status(401).json({ error: e.message });
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 提交考试批改
+app.post('/api/v1/exam/submit', async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const apiKey = req.headers['x-api-key'];
+    if (!apiKey) return res.status(400).json({ error: '缺少 API Key' });
+    const platform = req.headers['x-api-platform'] || 'deepseek';
+    const customUrl = req.headers['x-api-custom-url'] || '';
+    const { difficulty, questions, answers } = req.body;
+    if (!difficulty || !questions || !answers) return res.status(400).json({ error: '参数不完整' });
+
+    // 构建批改请求
+    const qaList = [];
+    (questions.sentences || []).forEach(q => {
+      const a = (answers.sentences || []).find(x => x.id === q.id);
+      qaList.push(`第${q.id}题（2分）：${q.chinese}\n参考答案：${a?.translation || '未作答'}`);
+    });
+    (questions.long_texts || []).forEach(q => {
+      const a = (answers.long_texts || []).find(x => x.id === q.id);
+      qaList.push(`长篇第${q.id}题（10分）：${q.chinese}\n参考答案：${a?.translation || '未作答'}`);
+    });
+    const essayAnswer = answers.essay || '未作答';
+    qaList.push(`作文（100分）：${questions.essay?.topic || ''}\n考生作文：${essayAnswer}`);
+
+    const result = await callAI(apiKey, [
+      { role: 'system', content: `你是一位严格的英语翻译考试阅卷专家。批改以下${difficulty}难度试卷。
+评分标准：
+- 单句翻译每题2分，共100分。语法正确、用词恰当满分，有错误酌情扣分
+- 长文本翻译每题10分，共100分。准确传达原文意思、表达自然满分
+- 作文100分。内容切题、语言通顺、结构清晰满分
+- 总分300分，220分及以上为通过
+
+输出JSON格式：
+{
+  "total_score": 总分,
+  "passed": true/false,
+  "sentence_scores": [{"id":1,"score":2,"errors":""}],
+  "long_text_scores": [{"id":1,"score":8,"errors":""}],
+  "essay_score": {"score":80,"comment":"评语","issues":[],"annotated_text":""},
+  "summary": "总体评价"
+}` },
+      { role: 'user', content: qaList.join('\n\n') }
+    ], 0.3, platform, customUrl);
+
+    const passed = result.total_score >= 220;
+    // 保存主结果
+    const ins = db.prepare(`INSERT INTO exam_results (user_id, difficulty, score, passed, badge_earned, questions, answers, grading)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
+    const r = ins.run(userId, difficulty, result.total_score, passed ? 1 : 0, passed ? 1 : 0,
+      JSON.stringify(questions), JSON.stringify(answers), JSON.stringify(result));
+    const examId = r.lastInsertRowid;
+
+    // 逐题保存到子表
+    const qIns = db.prepare(`INSERT INTO exam_question_results (exam_id, question_type, question_index, user_answer, correct_answer, score, max_score, ai_feedback) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
+    (result.sentence_scores || []).forEach(s => {
+      const a = (answers.sentences || []).find(x => x.id === s.id);
+      const q = (questions.sentences || []).find(x => x.id === s.id);
+      qIns.run(examId, 'sentence', s.id, a?.translation||'', q?.chinese||'', s.score||0, 2, s.errors||'');
+    });
+    (result.long_text_scores || []).forEach(s => {
+      const a = (answers.long_texts || []).find(x => x.id === s.id);
+      const q = (questions.long_texts || []).find(x => x.id === s.id);
+      qIns.run(examId, 'long_text', s.id, a?.translation||'', q?.chinese||'', s.score||0, 10, s.errors||'');
+    });
+    qIns.run(examId, 'essay', 0, answers.essay||'', questions.essay?.topic||'', result.essay_score?.score||0, 100, result.essay_score?.comment||'');
+
+    res.json({ success: true, result, passed, exam_id: examId });
+  } catch (e) {
+    if (e.message === '未登录') return res.status(401).json({ error: e.message });
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 查询该用户考试成绩
+app.get('/api/v1/exam/results', (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const rows = db.prepare('SELECT id, difficulty, score, passed, badge_earned, created_at FROM exam_results WHERE user_id = ? ORDER BY created_at DESC').all(userId);
+    res.json(rows);
+  } catch (e) {
+    if (e.message === '未登录') return res.status(401).json({ error: e.message });
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 考试详情（含逐题结果）
+app.get('/api/v1/exam/detail/:id', (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const exam = db.prepare('SELECT * FROM exam_results WHERE id = ? AND user_id = ?').get(req.params.id, userId);
+    if (!exam) return res.status(404).json({ error: '未找到' });
+    const questions = db.prepare('SELECT * FROM exam_question_results WHERE exam_id = ? ORDER BY question_type, question_index').all(exam.id);
+    res.json({ exam, questions });
+  } catch (e) {
+    if (e.message === '未登录') return res.status(401).json({ error: e.message });
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 考试统计数据（按类型得分率、趋势）
+app.get('/api/v1/exam/stats', (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const allExams = db.prepare('SELECT id, difficulty, score, created_at FROM exam_results WHERE user_id = ? ORDER BY created_at ASC').all(userId);
+    const typeStats = db.prepare(`SELECT q.question_type, AVG(q.score/q.max_score)*100 as rate, COUNT(*) as count
+      FROM exam_question_results q JOIN exam_results e ON q.exam_id = e.id
+      WHERE e.user_id = ? AND q.max_score > 0 GROUP BY q.question_type`).all(userId);
+    res.json({ exams: allExams, typeStats });
+  } catch (e) {
+    if (e.message === '未登录') return res.status(401).json({ error: e.message });
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 错题本（得分低于满分的题目）
+app.get('/api/v1/exam/wrong-questions', (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const rows = db.prepare(`SELECT q.*, e.difficulty, e.created_at as exam_date
+      FROM exam_question_results q JOIN exam_results e ON q.exam_id = e.id
+      WHERE e.user_id = ? AND q.score < q.max_score AND q.question_type != 'essay'
+      ORDER BY q.created_at DESC LIMIT 100`).all(userId);
+    res.json(rows);
+  } catch (e) {
+    if (e.message === '未登录') return res.status(401).json({ error: e.message });
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 考试参与排行榜开关
+app.put('/api/v1/user/exam-opt-out', (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const { optOut } = req.body;
+    db.prepare('UPDATE users SET exam_opt_out = ? WHERE id = ?').run(optOut ? 1 : 0, userId);
+    res.json({ success: true });
+  } catch (e) {
+    if (e.message === '未登录') return res.status(401).json({ error: e.message });
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 查询用户获得的徽章// 查询用户获得的徽章
+app.get('/api/v1/exam/badges', (req, res) => {
+  try {
+    const userId = getUserId(req) || (req.query.userId ? parseInt(req.query.userId) : 0);
+    if (!userId) return res.json([]);
+    const rows = db.prepare('SELECT difficulty, score, created_at FROM exam_results WHERE user_id = ? AND badge_earned = 1 ORDER BY created_at DESC').all(userId);
+    res.json(rows);
+  } catch (e) {
+    if (e.message === '未登录') return res.json([]);
     res.status(500).json({ error: e.message });
   }
 });

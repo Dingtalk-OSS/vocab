@@ -196,7 +196,8 @@
     .diff-card .diff-num { font-size:0.75rem; color:var(--accent); font-weight:700; }
     .diff-card .diff-name { font-size:0.95rem; color:var(--text-primary); margin-top:4px; font-weight:500; }
     .diff-card .diff-desc { font-size:0.75rem; color:var(--text-secondary); margin-top:6px; line-height:1.3; }
-    .diff-tooltip { position:fixed; background:var(--card-bg); backdrop-filter:blur(20px); border:1px solid var(--accent); border-radius:16px; padding:16px 20px; max-width:360px; z-index:500; box-shadow:0 12px 40px rgba(0,0,0,0.3); opacity:0; transform:translateY(8px); pointer-events:none; transition:all 0.25s; }
+    .diff-tooltip { position:fixed; background:var(--card-bg); backdrop-filter:blur(20px); border:1px solid var(--accent); border-radius:16px; padding:16px 20px; max-width:min(360px,90vw); z-index:500; box-shadow:0 12px 40px rgba(0,0,0,0.3); opacity:0; transform:translateY(8px); pointer-events:none; transition:all 0.25s; }
+    @media (max-width:480px) { .diff-tooltip { left:5vw!important; right:5vw!important; max-width:90vw; } }
     .diff-tooltip.show { opacity:1; transform:translateY(0); pointer-events:auto; }
     .diff-tooltip h5 { color:var(--accent); font-size:1rem; margin-bottom:6px; }
     .diff-tooltip p { color:var(--text-secondary); font-size:0.85rem; line-height:1.5; }
@@ -343,6 +344,7 @@
             </div>
             <div id="wordLoader" class="loader" style="display:none;"></div>
             <button class="memorized-btn" id="markMemorizedBtn">标记为已背</button>
+            <button class="memorized-btn" id="deepQBtn" style="margin-top:6px;">深入问答 (10次)</button>
           </div>
         </div>
         <div class="toggle-area">
@@ -358,7 +360,10 @@
           <div class="chinese-card" id="chineseSentence"></div>
           <div id="sentenceLoader" class="loader" style="display:none;"></div>
           <div class="input-group">
-            <textarea id="translateInput" placeholder="输入你的英文翻译..."></textarea>
+            <div style="position:relative;">
+              <textarea id="translateInput" placeholder="输入你的英文翻译..."></textarea>
+              <button id="micBtn" style="display:none; position:absolute; left:8px; bottom:8px; width:28px; height:28px; border-radius:50%; border:1px solid var(--accent); background:var(--card-bg); color:var(--accent); cursor:pointer; font-size:0.8rem; align-items:center; justify-content:center; z-index:5;" title="语音输入">🎤</button>
+            </div>
             <div class="timer-display" id="timerDisplay"></div>
             <button class="btn primary" id="submitBtn">提交翻译</button>
           </div>
@@ -406,6 +411,7 @@
         <button class="tab-btn active" id="tabAvgScore">平均分</button>
         <button class="tab-btn" id="tabAvgTime">平均用时</button>
         <button class="tab-btn" id="tabChallenge">竞赛</button>
+        <button class="tab-btn" id="tabExam">考试</button>
       </div>
       <div class="field" style="margin-bottom:8px;">
         <label>统计范围</label>
@@ -427,6 +433,17 @@
           <button class="tab-btn" data-diff="4">L4</button>
           <button class="tab-btn" data-diff="5">L5</button>
           <button class="tab-btn" data-diff="6">L6</button>
+          <button class="tab-btn" data-diff="CET4">CET-4</button>
+          <button class="tab-btn" data-diff="CET6">CET-6</button>
+          <button class="tab-btn" data-diff="kaoyan">考研</button>
+        </div>
+      </div>
+      <div id="challengeDurArea" style="display:none; margin-bottom:10px;">
+        <label style="font-size:0.85rem; color:var(--text-secondary);">竞赛时长</label>
+        <div style="display:flex; gap:6px; margin-top:4px;">
+          <button class="tab-btn challenge-dur-filter" data-dur="15">15分钟</button>
+          <button class="tab-btn active challenge-dur-filter" data-dur="30">30分钟</button>
+          <button class="tab-btn challenge-dur-filter" data-dur="60">60分钟</button>
         </div>
       </div>
       <div id="leaderboardContent" style="max-height:40vh; overflow-y:auto;"></div>
@@ -473,6 +490,7 @@
         <div style="text-align:center;"><div style="font-size:1.3rem; font-weight:700; color:var(--accent);" id="udCount">0</div><div style="font-size:0.8rem; color:var(--text-secondary);">练习次数</div></div>
         <div style="text-align:center;"><div style="font-size:1.3rem; font-weight:700; color:var(--accent);" id="udRank">--</div><div style="font-size:0.8rem; color:var(--text-secondary);">排名</div></div>
       </div>
+      <button class="btn w-full mt-8" id="udViewProfileBtn" style="display:none;">查看详细资料</button>
     </div>
   </div>
 
@@ -498,9 +516,12 @@
 
   <!-- 个人资料弹窗 -->
   <div id="profileModal" class="modal-overlay" style="display:none;">
-    <div class="modal-card" style="max-width:420px;">
-      <button class="modal-close-btn" id="profileModalClose">X</button>
-      <h4>个人资料</h4>
+    <div style="width:100vw;height:100vh;background:var(--bg-start);display:flex;flex-direction:column;overflow-y:auto;">
+      <div style="display:flex;align-items:center;gap:12px;padding:10px 16px;background:var(--card-bg);border-bottom:1px solid var(--input-border);flex-shrink:0;">
+        <button class="btn" id="profileModalClose" style="padding:6px 14px;font-size:0.85rem;">← 返回</button>
+        <span style="color:var(--accent);font-weight:600;">个人资料</span>
+      </div>
+      <div style="padding:20px;">
       <div style="text-align:center; margin-bottom:16px;">
         <div id="avatarCircle" style="width:64px; height:64px; border-radius:50%; background:var(--accent); display:inline-flex; align-items:center; justify-content:center; font-size:1.6rem; font-weight:600; color:#fff;"></div>
       </div>
@@ -516,6 +537,16 @@
           <option value="away">离开</option>
           <option value="offline">离线</option>
         </select>
+      </div>
+      <!-- 徽章展示 -->
+      <div id="badgeArea" style="margin-bottom:12px; display:none;">
+        <div style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:6px;">等级认证徽章</div>
+        <div id="badgeList" style="display:flex; gap:8px; overflow-x:auto; padding:4px 0;"></div>
+      </div>
+      <!-- 最近动态 -->
+      <div id="recentActivity" style="margin-bottom:12px; display:none;">
+        <div style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:6px;">最近在干什么</div>
+        <div id="activityList" style="max-height:120px; overflow-y:auto; font-size:0.85rem;"></div>
       </div>
       <button class="btn primary w-full" id="saveProfileBtn">保存</button>
       <div style="display:flex; justify-content:center; gap:24px; margin-top:14px; font-size:0.85rem; color:var(--text-secondary);">
@@ -628,24 +659,38 @@
     </div>
   </div>
 
-  <!-- 智能翻译弹窗 -->
-  <div id="aiChatModal" class="modal-overlay" style="display:none;">
-    <div class="modal-card" style="max-width:600px; height:80vh; display:flex; flex-direction:column; padding:24px;">
-      <button class="modal-close-btn" id="aiChatClose">X</button>
-      <h4>智能翻译</h4>
-      <div id="aiChatMessages" style="flex:1; overflow-y:auto; padding:12px; border:1px solid var(--input-border); border-radius:14px; margin-bottom:10px; background:var(--card-bg);"></div>
-      <div style="display:flex; gap:8px;">
-        <textarea id="aiChatInput" placeholder="输入中文或英文..." style="flex:1; min-height:50px; padding:10px 14px;"></textarea>
-        <button class="btn primary" id="aiChatSend" style="padding:10px 20px; align-self:flex-end;">发送</button>
+  <!-- 深入问答弹窗 -->
+  <div id="deepQModal" class="modal-overlay" style="display:none;">
+    <div class="modal-card" style="max-width:500px;">
+      <button class="btn" id="deepQClose" style="position:absolute;top:14px;left:14px;padding:6px 14px;font-size:0.85rem;z-index:10;">← 返回</button>
+      <h4 style="margin-left:60px;">深入问答</h4>
+      <div id="deepQRemaining" style="text-align:right;font-size:0.8rem;color:var(--text-secondary);margin-bottom:8px;">剩余 10 次</div>
+      <div id="deepQMessages" style="flex:1;overflow-y:auto;padding:12px;border:1px solid var(--input-border);border-radius:14px;margin-bottom:10px;background:var(--card-bg);min-height:150px;max-height:300px;">
+        <div class="empty-state">问关于当前单词的问题（用法、搭配、近义词等）</div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <textarea id="deepQInput" placeholder="输入你的问题..." style="flex:1;min-height:44px;padding:10px 14px;"></textarea>
+        <button class="btn primary" id="deepQSend" style="padding:10px 20px;align-self:flex-end;">发送</button>
       </div>
     </div>
   </div>
 
-  <!-- 作文批改弹窗 -->
+  <!-- 作文批改弹窗（全屏） -->
+  <style>  <!-- 作文批改弹窗（全屏） -->
+  <style>
+    #essayModal .modal-card { max-width:100vw!important; width:100vw!important; height:100vh!important; max-height:100vh!important; border-radius:0!important; padding:24px; display:flex; flex-direction:column; }
+    #essayModal .modal-card h4 { flex-shrink:0; }
+    #essayModal #essayResult { flex:1; overflow-y:auto; min-height:0; }
+    @media (min-width:768px) { #essayModal .modal-card { max-width:90vw!important; width:90vw!important; max-height:90vh!important; border-radius:28px!important; } }
+    .essay-del { color:#ff4444; text-decoration:line-through; }
+    .essay-add { color:#22c55e; }
+    .essay-mod { background:rgba(255,193,7,0.3); padding:1px 2px; border-radius:2px; }
+    .essay-ins { color:#3b82f6; }
+  </style>
   <div id="essayModal" class="modal-overlay" style="display:none;">
-    <div class="modal-card" style="max-width:650px;">
-      <button class="modal-close-btn" id="essayClose">X</button>
-      <h4>作文批改</h4>
+    <div class="modal-card" style="max-width:100vw; width:100vw; height:100vh; border-radius:0; padding:24px;">
+      <button class="btn" id="essayBack" style="position:absolute; top:14px; left:14px; padding:6px 14px; font-size:0.85rem; z-index:10;">← 返回</button>
+      <h4 style="margin-left:60px;">作文批改</h4>
       <div class="field"><label>类型</label>
         <select id="essayType">
           <option value="cet4">大学英语四级 (CET-4)</option>
@@ -664,68 +709,87 @@
     </div>
   </div>
 
-  <!-- 对话记录弹窗 -->
-  <div id="chatHistoryModal" class="modal-overlay" style="display:none;">
+
+  <!-- 等级考试弹窗（全屏） -->
+  <div id="examModal" class="modal-overlay" style="display:none; z-index:350;">
+    <div style="width:100vw; height:100vh; background:var(--bg-start); display:flex; flex-direction:column;">
+      <div style="display:flex; align-items:center; gap:12px; padding:10px 16px; background:var(--card-bg); backdrop-filter:blur(12px); border-bottom:1px solid var(--input-border); flex-shrink:0;">
+        <button class="btn" id="examBack" style="padding:6px 14px; font-size:0.85rem;">← 返回</button>
+        <span style="color:var(--accent); font-weight:600;" id="examDiffLabel">等级考试</span>
+        <span style="flex:1;"></span>
+        <span id="examTimer" style="font-size:1.2rem; font-weight:700; color:var(--accent); font-variant-numeric:tabular-nums;">02:30:00</span>
+      </div>
+      <div style="display:flex; gap:4px; padding:8px 16px; background:var(--card-bg); border-bottom:1px solid var(--input-border); flex-shrink:0;">
+        <button class="tab-btn active exam-tab" data-tab="sentences">单句翻译(<span id="examSCount">50</span>)</button>
+        <button class="tab-btn exam-tab" data-tab="long">长文本(<span id="examLCount">10</span>)</button>
+        <button class="tab-btn exam-tab" data-tab="essay">作文</button>
+      </div>
+      <div style="flex:1; overflow-y:auto; padding:16px;">
+        <div id="examSentencesArea"></div>
+        <div id="examLongArea" style="display:none;"></div>
+        <div id="examEssayArea" style="display:none;"></div>
+      </div>
+      <div style="padding:10px 16px; background:var(--card-bg); border-top:1px solid var(--input-border); flex-shrink:0;">
+        <button class="btn primary w-full" id="examSubmitBtn">提交试卷</button>
+        <div id="examSubmitStatus" style="text-align:center; font-size:0.85rem; margin-top:4px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 考试结果弹窗 -->
+  <div id="examResultModal" class="modal-overlay" style="display:none; z-index:360;">
+    <div style="width:100vw; height:100vh; background:var(--bg-start); display:flex; flex-direction:column;">
+      <div style="display:flex; align-items:center; gap:12px; padding:10px 16px; background:var(--card-bg); border-bottom:1px solid var(--input-border); flex-shrink:0;">
+        <button class="btn" id="examResultBack" style="padding:6px 14px; font-size:0.85rem;">← 返回</button>
+        <span style="color:var(--accent); font-weight:600;">考试结果</span>
+      </div>
+      <div id="examResultContent" style="flex:1; overflow-y:auto; padding:16px;"></div>
+    </div>
+  </div>
+
+  
+  <!-- 考试记录弹窗 -->
+  <div id="examHistoryModal" class="modal-overlay" style="display:none;">
     <div class="modal-card" style="max-width:500px;">
-      <button class="modal-close-btn" id="chatHistoryClose">X</button>
-      <h4>对话记录</h4>
-      <div id="chatHistoryList" style="max-height:50vh; overflow-y:auto;"></div>
+      <button class="modal-close-btn" id="examHistoryClose">X</button>
+      <h4>考试记录</h4>
+      <div style="margin-bottom:10px; display:flex; gap:8px;">
+        <select id="examHistoryFilter" style="flex:1;">
+          <option value="">全部难度</option>
+          <option value="L1">L1</option><option value="L2">L2</option><option value="L3">L3</option>
+          <option value="L4">L4</option><option value="L5">L5</option><option value="L6">L6</option>
+          <option value="CET4">CET-4</option><option value="CET6">CET-6</option><option value="kaoyan">考研</option>
+        </select>
+      </div>
+      <div id="examHistoryList" style="max-height:50vh; overflow-y:auto;"></div>
     </div>
   </div>
 
-  <!-- 对话详情弹窗 -->
-  <div id="chatDetailModal" class="modal-overlay" style="display:none;">
-    <div class="modal-card" style="max-width:600px; height:70vh; display:flex; flex-direction:column; padding:24px;">
-      <button class="modal-close-btn" id="chatDetailClose">X</button>
-      <h4 id="chatDetailTitle">对话</h4>
-      <div id="chatDetailMessages" style="flex:1; overflow-y:auto; padding:12px; border:1px solid var(--input-border); border-radius:14px; background:var(--card-bg);"></div>
-    </div>
-  </div>
-
-  <!-- 智能翻译弹窗 -->
-  <div id="smartTranslateModal" class="modal-overlay" style="display:none;">
+  <!-- 考试详情弹窗 -->
+  <div id="examDetailModal" class="modal-overlay" style="display:none;">
     <div class="modal-card" style="max-width:600px;">
-      <button class="modal-close-btn" id="smartTranslateClose">X</button>
-      <h4>智能翻译</h4>
-      <div style="display:flex; gap:10px; margin-bottom:12px;">
-        <div class="field" style="flex:1; margin-bottom:0;">
-          <label>翻译方向</label>
-          <select id="stDirection">
-            <option value="zh2en">中译英</option>
-            <option value="en2zh">英译中</option>
-          </select>
-        </div>
-        <div class="field" style="flex:1; margin-bottom:0;">
-          <label>翻译标准</label>
-          <select id="stStandard">
-            <option value="cet4">CET-4（四级标准）</option>
-            <option value="cet6">CET-6（六级标准）</option>
-            <option value="kaoyan">考研英语标准</option>
-          </select>
-        </div>
-      </div>
-      <div class="field"><label>输入内容</label>
-        <textarea id="stInput" placeholder="请输入要翻译的内容..." style="min-height:120px;"></textarea>
-      </div>
-      <button class="btn primary w-full" id="stSubmitBtn">翻译</button>
-      <div id="stResult" style="display:none; margin-top:12px;">
-        <div class="field"><label>翻译结果</label>
-          <div id="stOutput" style="background:var(--card-bg); border-radius:14px; padding:14px 18px; border:1px solid var(--input-border); min-height:80px; white-space:pre-wrap; line-height:1.6;"></div>
-        </div>
-        <div id="stNotes" style="font-size:0.85rem; color:var(--text-secondary); margin-top:8px; padding:10px 14px; background:var(--accent-light); border-radius:12px; line-height:1.5;"></div>
-      </div>
+      <button class="modal-close-btn" id="examDetailClose">X</button>
+      <h4 id="examDetailTitle">考试详情</h4>
+      <div id="examDetailContent" style="max-height:60vh; overflow-y:auto;"></div>
+    </div>
+  </div>
+
+  <!-- 错题本弹窗 -->
+  <div id="wrongQModal" class="modal-overlay" style="display:none;">
+    <div class="modal-card" style="max-width:500px;">
+      <button class="modal-close-btn" id="wrongQClose">X</button>
+      <h4>错题本</h4>
+      <div id="wrongQList" style="max-height:55vh; overflow-y:auto;"></div>
     </div>
   </div>
 
   <!-- AI 工具二级菜单 -->
   <div id="aiToolsModal" class="modal-overlay" style="display:none;">
     <div class="modal-card" style="max-width:360px;">
-      <button class="modal-close-btn" id="aiToolsClose">X</button>
-      <h4>AI 工具</h4>
+      <button class="btn" id="aiToolsClose" style="position:absolute;top:14px;left:14px;padding:6px 14px;font-size:0.85rem;z-index:10;">← 返回</button>
+      <h4 style="margin-left:60px;">AI 工具</h4>
       <button class="btn w-full" id="smartTranslateBtn2">智能翻译</button>
       <button class="btn w-full mt-8" id="essayGradeBtn2">作文批改</button>
-      <button class="btn w-full mt-8" id="aiChatBtn2">AI 对话</button>
-      <button class="btn w-full mt-8" id="chatHistoryBtn2">对话记录</button>
     </div>
   </div>
 
@@ -775,6 +839,13 @@
     <div class="settings-section">
       <h4>功能</h4>
       <div class="field" style="flex-direction:row; align-items:center; justify-content:space-between; margin-bottom:8px;">
+        <label style="margin:0; cursor:pointer;">不参与考试排行</label>
+        <label class="switch-track" id="examOptOutTrack" style="position:relative; width:44px; height:24px;">
+          <input type="checkbox" id="examOptOutCheckbox">
+          <span class="switch-knob" style="width:17px;height:17px;top:2.5px;left:2.5px;"></span>
+        </label>
+      </div>
+      <div class="field" style="flex-direction:row; align-items:center; justify-content:space-between; margin-bottom:8px;">
         <label style="margin:0; cursor:pointer;">翻译计时器</label>
         <label class="switch-track" id="timerToggleTrack" style="position:relative; width:44px; height:24px;">
           <input type="checkbox" id="timerToggle">
@@ -783,6 +854,9 @@
       </div>
       <div class="text-secondary" style="font-size:0.8rem; margin-bottom:8px;">从显示中文句子开始计时</div>
       <button class="btn w-full" id="aiToolsBtn">AI 工具</button>
+      <button class="btn w-full mt-8" id="examBtn">等级考试</button>
+      <button class="btn w-full mt-8" id="examHistoryBtn">考试记录</button>
+      <button class="btn w-full mt-8" id="wrongQBtn">错题本</button>
       <button class="btn w-full mt-8" id="changeDifficultyBtn">切换难度</button>
     </div>
     <div class="settings-section">
@@ -837,6 +911,7 @@
     let memorizedWords = JSON.parse(localStorage.getItem(userKey('vocab_memorized')) || '[]');
 
     const $ = id => document.getElementById(id);
+    function escHtml(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
 
     function authHeaders() {
       return {
@@ -900,9 +975,18 @@
     }
 
     // 登录/注册
+    const PROFANITY_LIST = ['fuck','shit','damn','ass','bitch','dick','porn','sex','xxx','nigga','bastard','crap','suck','wtf','stfu','admin','root','test','尼玛','他妈','傻逼','草泥马','操你','日你','fuck','shit','asshole','bitch','dickhead','pussy','cock','cunt','whore','slut'];
+    function checkProfanity(text) {
+      const lower = String(text).toLowerCase().trim();
+      for (const word of PROFANITY_LIST) {
+        if (lower === word || lower.includes(word)) return word;
+      }
+      return null;
+    }
     function validateUsername(name) {
       if (name.length < 2 || name.length > 20) return '用户名长度需 2-20 个字符';
       if (/[<>"'&\\/]/.test(name)) return '用户名包含非法字符';
+      if (checkProfanity(name)) return '用户名包含违规内容';
       return null;
     }
     $('loginBtn').addEventListener('click', async () => {
@@ -1039,7 +1123,7 @@
         $('diffTooltipTitle').textContent = d + ' · ' + DIFF_NAMES[d];
         $('diffTooltipDesc').textContent = DIFF_DESCS[d];
         const rect = card.getBoundingClientRect();
-        tooltip.style.left = Math.min(rect.left + rect.width/2 - 180, window.innerWidth - 380) + 'px';
+        tooltip.style.left = Math.max(5, Math.min(rect.left, window.innerWidth - 5)) + 'px';
         tooltip.style.top = (rect.bottom + 12) + 'px';
         tooltip.classList.add('show');
       });
@@ -1063,6 +1147,43 @@
         $('submitBtn').click();
       }
     });
+    // 语音输入
+    let recognition = null;
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognition = new SR();
+      recognition.lang = 'en-US';
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      $('micBtn').style.display = 'flex';
+      $('micBtn').onclick = () => {
+        if (isChallengeMode) return;
+        try {
+          recognition.start();
+          $('micBtn').textContent = '🔴';
+          $('micBtn').style.borderColor = '#ff4444';
+          $('micBtn').style.color = '#ff4444';
+        } catch(e) {}
+      };
+      recognition.onresult = (e) => {
+        const text = e.results[0][0].transcript;
+        const input = $('translateInput');
+        input.value = input.value ? input.value + ' ' + text : text;
+        $('micBtn').textContent = '🎤';
+        $('micBtn').style.borderColor = '';
+        $('micBtn').style.color = '';
+      };
+      recognition.onerror = () => {
+        $('micBtn').textContent = '🎤';
+        $('micBtn').style.borderColor = '';
+        $('micBtn').style.color = '';
+      };
+      recognition.onend = () => {
+        $('micBtn').textContent = '🎤';
+        $('micBtn').style.borderColor = '';
+        $('micBtn').style.color = '';
+      };
+    }
     async function fetchWordFromAI(attempt=0) {
       if (isPracticeMode) {
         // 练习模式：从 practiceWords 取词
@@ -1213,6 +1334,8 @@
         memorizedWords = memorizedWords.filter(w => w !== word);
         $('markMemorizedBtn').classList.remove('marked'); $('markMemorizedBtn').textContent = '标记为已背';
         localStorage.setItem(userKey('vocab_memorized'), JSON.stringify(memorizedWords));
+        // 取消已背后直接加载下一个单词
+        loadNewWord();
       } else {
         showConfirm('标记为已背后将跳过该单词，确定吗？', () => {
           memorizedWords.push(word); $('markMemorizedBtn').classList.add('marked'); $('markMemorizedBtn').textContent = '已背过';
@@ -1346,25 +1469,47 @@
       $('leaderboardContent').querySelectorAll('[data-username]').forEach(el => { el.addEventListener('click', () => showUserDetail(el.dataset.username)); });
     }
     const currentType = { v: 'avg-score' };
+    let currentChallengeDur = 30;
     function switchLeaderTab(type) {
       currentType.v = type;
       $('tabAvgScore').classList.toggle('active', type==='avg-score');
       $('tabAvgTime').classList.toggle('active', type==='avg-time');
       $('tabChallenge').classList.toggle('active', type==='challenge');
-      if (type === 'challenge') { loadChallengeLeaderboard(30); return; }
+      $('tabExam').classList.toggle('active', type==='exam');
+      // 竞赛/考试模式特殊处理
+      const isCh = type === 'challenge';
+      const isEx = type === 'exam';
+      $('challengeDurArea').style.display = isCh ? 'block' : 'none';
+      $('leaderboardLimit').closest('.field').style.display = (isCh || isEx) ? 'none' : 'block';
+      if (isCh) { loadChallengeLeaderboard(currentChallengeDur); return; }
+      if (isEx) { loadExamLeaderboard(); return; }
       loadLeaderboard(type);
     }
     $('tabAvgScore').addEventListener('click', () => switchLeaderTab('avg-score'));
     $('tabAvgTime').addEventListener('click', () => switchLeaderTab('avg-time'));
     $('tabChallenge').addEventListener('click', () => switchLeaderTab('challenge'));
+    $('tabExam').addEventListener('click', () => switchLeaderTab('exam'));
     $('leaderboardLimit').addEventListener('change', () => loadLeaderboard(currentType.v));
     // 排行榜难度筛选
     document.querySelectorAll('#leaderboardModal .tab-btn[data-diff]').forEach(btn => {
       btn.addEventListener('click', () => {
         document.querySelectorAll('#leaderboardModal .tab-btn[data-diff]').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        leaderboardDiff = parseInt(btn.dataset.diff);
-        loadLeaderboard(currentType.v);
+        leaderboardDiff = btn.dataset.diff;
+        if (currentType.v === 'challenge') {
+          loadChallengeLeaderboard(currentChallengeDur);
+        } else {
+          loadLeaderboard(currentType.v);
+        }
+      });
+    });
+    // 竞赛时长筛选
+    document.querySelectorAll('.challenge-dur-filter').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.challenge-dur-filter').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentChallengeDur = parseInt(btn.dataset.dur);
+        loadChallengeLeaderboard(currentChallengeDur);
       });
     });
     // 竞赛排行榜加载
@@ -1379,6 +1524,27 @@
           <span class="count">均分${Math.round(item.avg_score)}</span>
         </div>`
       ).join('') : '<div class="empty-state">暂无竞赛数据</div>';
+      $('leaderboardContent').innerHTML = html;
+      $('leaderboardContent').querySelectorAll('[data-username]').forEach(el => {
+        el.addEventListener('click', () => showUserDetail(el.dataset.username));
+      });
+    }
+
+          });
+    }
+    // 考试排行榜加载
+    async function loadExamLeaderboard() {
+      const diff = leaderboardDiff || '';
+      const resp = await fetch(BACKEND_URL+'/api/v1/leaderboard/exam?difficulty='+encodeURIComponent(diff), { headers: authHeaders() });
+      const data = await resp.json();
+      const html = data.length ? data.map((item,i) =>
+        '<div class="leaderboard-item" style="cursor:pointer;" data-username="'+item.username+'">'+
+          '<span class="rank">'+(i+1)+'</span>'+
+          '<span class="name">'+(item.display_name||item.username)+'</span>'+
+          '<span class="stat">'+item.best_score+'分</span>'+
+          '<span class="count">'+(item.badge_count||0)+'个徽章</span>'+
+        '</div>'
+      ).join('') : '<div class="empty-state">暂无考试数据</div>';
       $('leaderboardContent').innerHTML = html;
       $('leaderboardContent').querySelectorAll('[data-username]').forEach(el => {
         el.addEventListener('click', () => showUserDetail(el.dataset.username));
@@ -1423,12 +1589,14 @@
     async function startChallenge(dur) {
       isChallengeMode = true; challengeDuration = dur;
       challengeResults = []; challengeUsedWords = []; challengeEndTime = Date.now() + dur * 60000;
-      // 竞赛时隐藏普通练习的干扰元素
+      // 竞赛时隐藏普通练习的干扰元素，禁止粘贴
       $('rememberCheck').checked = false; $('rememberTrack').classList.remove('on');
       $('markMemorizedBtn').style.display = 'none';
       document.querySelector('.toggle-area').style.display = 'none';
       $('chineseArea').classList.add('expanded'); $('wordInfoWrapper').classList.add('collapsed');
       $('translateInput').value = ''; $('resultArea').style.display = 'none'; resetTimer();
+      $('translateInput').onpaste = () => false;
+      $('micBtn').style.display = 'none';
       // 显示倒计时
       updateChallengeTimer();
       challengeTimerInterval = setInterval(updateChallengeTimer, 1000);
@@ -1514,6 +1682,8 @@
       const ta = document.querySelector('.toggle-area');
       if (ta) ta.style.display = '';
       $('wordInfoWrapper').classList.remove('collapsed');
+      $('translateInput').onpaste = null;
+      $('micBtn').style.display = 'flex';
     }
     async function endChallenge() {
       isChallengeMode = false;
@@ -1579,7 +1749,45 @@
         $('udAvatar').textContent = name[0].toUpperCase();
         $('udAvatar').style.background = getAvatarColor(name);
         $('udStatusDot').className = 'status-dot ' + (d.status || 'offline');
+        if (!isSelf && d.id) {
+          $('udViewProfileBtn').style.display = 'block';
+          $('udViewProfileBtn').onclick = () => { $('userDetailModal').style.display='none'; openFullProfile(d.username); };
+        } else {
+          $('udViewProfileBtn').style.display = 'none';
+        }
       } catch(e) { $('udDisplayName').textContent = '加载失败'; }
+    }
+    // 全屏个人主页
+    $('fullProfileBack').addEventListener('click', () => $('fullProfileModal').style.display = 'none');
+    async function openFullProfile(username) {
+      $('fullProfileModal').style.display = 'flex';
+      $('fullProfileContent').innerHTML = '<div class="loader"></div>';
+      try {
+        const resp = await fetch(BACKEND_URL+'/api/v1/user/profile?username='+encodeURIComponent(username), { headers: authHeaders() });
+        const d = await resp.json();
+        let badgeHtml = '<span class="text-secondary">暂无徽章</span>';
+        try {
+          const br = await fetch(BACKEND_URL+'/api/v1/exam/badges?userId='+d.id, { headers: authHeaders() });
+          const badges = await br.json();
+          if (badges.length) {
+            badgeHtml = badges.map(b => '<span style="white-space:nowrap; background:var(--accent-light); border:1px solid var(--accent); border-radius:20px; padding:4px 14px; font-size:0.85rem; color:var(--accent); font-weight:500; margin:4px;">\u{1F3C6} '+b.difficulty+' 认证</span>').join(' ');
+          }
+        } catch(e) {}
+        const avatarColor = getAvatarColor(d.display_name||d.username);
+        const initial = (d.display_name||d.username)[0].toUpperCase();
+        $('fullProfileContent').innerHTML =
+          '<div style="text-align:center; padding:20px;">'+
+            '<div style="width:72px;height:72px;border-radius:50%;background:'+avatarColor+';display:inline-flex;align-items:center;justify-content:center;font-size:2rem;font-weight:600;color:#fff;margin-bottom:10px;">'+initial+'</div>'+
+            '<div style="font-size:1.3rem;font-weight:600;color:var(--text-primary);">'+(d.display_name||d.username)+'</div>'+
+            '<div style="font-size:0.85rem;color:var(--text-secondary);margin-top:4px;">@'+d.username+'</div>'+
+            '<div style="font-size:0.9rem;color:var(--text-secondary);margin-top:6px;font-style:italic;">'+(d.tagline||'这个人很懒，什么都没写')+'</div>'+
+            '<div style="display:flex;flex-wrap:wrap;justify-content:center;gap:4px;margin-top:12px;max-height:60px;overflow:hidden;">'+badgeHtml+'</div>'+
+          '</div>'+
+          '<div style="display:flex;justify-content:center;gap:30px;padding:16px 0;border-top:1px solid var(--input-border);border-bottom:1px solid var(--input-border);margin-bottom:16px;">'+
+            '<div style="text-align:center;"><div style="font-size:1.5rem;font-weight:700;color:var(--accent);">'+(d.total_count||0)+'</div><div class="text-secondary">练习次数</div></div>'+
+            '<div style="text-align:center;"><div style="font-size:1.5rem;font-weight:700;color:var(--accent);">'+(d.rank||'--')+'</div><div class="text-secondary">排名</div></div>'+
+          '</div>';
+      } catch(e) { $('fullProfileContent').innerHTML = '<div class="error-text">加载失败</div>'; }
     }
 
     // 设置抽屉
@@ -1862,35 +2070,8 @@
       } catch(e) { $('wbBatchStatus').textContent = '上传失败'; }
       e.target.value = '';
     });
-    // 智能翻译 / AI 对话
-    let aiChatHistory = [];
     $('aiToolsBtn').addEventListener('click', () => { $('settingsDrawer').classList.remove('open'); $('aiToolsModal').style.display = 'flex'; });
     $('aiToolsClose').addEventListener('click', () => $('aiToolsModal').style.display = 'none');
-    $('aiChatBtn2').addEventListener('click', () => {
-      $('settingsDrawer').classList.remove('open');
-      $('aiChatModal').style.display = 'flex';
-      $('aiChatMessages').innerHTML = '<div class="empty-state">开始和 AI 对话吧</div>';
-      aiChatHistory = [];
-    });
-    $('aiChatClose').addEventListener('click', () => $('aiChatModal').style.display = 'none');
-    $('aiChatSend').addEventListener('click', async () => {
-      const msg = $('aiChatInput').value.trim();
-      if (!msg) return;
-      $('aiChatInput').value = '';
-      const chatBox = $('aiChatMessages');
-      // 显示用户消息
-      chatBox.innerHTML += '<div style="text-align:right; margin:8px 0;"><span style="background:var(--accent); color:#fff; padding:8px 14px; border-radius:16px 16px 4px 16px; display:inline-block; max-width:80%;">'+msg+'</span></div>';
-      chatBox.scrollTop = chatBox.scrollHeight;
-      // AI 回复
-      try {
-        const resp = await fetch(`${BACKEND_URL}/api/v1/ai/chat`, { method:'POST', headers: authHeaders(), body: JSON.stringify({ message: msg, save: true, word: 'smart_translate' }) });
-        const data = await resp.json();
-        chatBox.innerHTML += '<div style="text-align:left; margin:8px 0;"><span style="background:var(--card-bg); color:var(--text-primary); padding:8px 14px; border-radius:16px 16px 16px 4px; display:inline-block; max-width:80%; border:1px solid var(--input-border);">'+data.reply+'</span></div>';
-      } catch(e) { chatBox.innerHTML += '<div class="error-text" style="margin:8px 0;">连接失败</div>'; }
-      chatBox.scrollTop = chatBox.scrollHeight;
-    });
-    // Enter 发送
-    $('aiChatInput').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); $('aiChatSend').click(); } });
 
     // 智能翻译（新）
     $('smartTranslateBtn2').addEventListener('click', () => { $('aiToolsModal').style.display = 'none'; $('smartTranslateModal').style.display = 'flex'; $('stResult').style.display = 'none'; $('stInput').value = ''; });
@@ -1919,7 +2100,8 @@
     // 作文批改 — 出题 + 批改
     let currentEssayTopic = '';
     $('essayGradeBtn2').addEventListener('click', () => { $('aiToolsModal').style.display = 'none'; $('essayModal').style.display = 'flex'; $('essayTopicDisplay').style.display = 'none'; currentEssayTopic = ''; });
-    $('essayClose').addEventListener('click', () => $('essayModal').style.display = 'none');
+    $('essayBack').addEventListener('click', () => $('essayModal').style.display = 'none');
+    (typeof $('essayClose')?.addEventListener === 'function') && $('essayClose').addEventListener('click', () => $('essayModal').style.display = 'none');
     $('essayGenerateTopicBtn').addEventListener('click', async () => {
       const type = $('essayType').value;
       $('essayGenerateTopicBtn').disabled = true; $('essayGenerateTopicBtn').textContent = '生成中...';
@@ -1953,33 +2135,12 @@
         const resp = await fetch(`${BACKEND_URL}/api/v1/ai/essay-grade`, { method:'POST', headers: authHeaders(), body: JSON.stringify({ essay: fullEssay, type }) });
         const data = await resp.json();
         const diffHtml = (data.issues||[]).map(d => '<div style="padding:6px 0; border-bottom:1px solid var(--input-border);"><strong>'+d.type+'</strong>: '+d.description+'<br><span class="text-secondary">建议: '+d.suggestion+'</span></div>').join('');
-        $('essayResult').innerHTML = '<div style="margin-bottom:12px;"><span style="font-size:1.5rem; font-weight:700; color:var(--accent);">'+(data.score||'--')+'分</span> <span style="margin-left:8px; color:var(--text-secondary);">'+(data.level||'')+'</span></div><div style="margin-bottom:12px;">'+(data.comments||'')+'</div>'+diffHtml+'<div style="margin-top:12px; padding:14px; background:var(--card-bg); border-radius:14px; border-left:3px solid var(--accent);"><strong>参考范文</strong><br>'+(data.sample||'')+'</div>';
+        const annotated = data.annotated_text ? '<div style="margin-bottom:12px; padding:14px; background:var(--card-bg); border-radius:14px; border:1px solid var(--input-border); line-height:1.8;"><strong style="color:var(--text-secondary);">原文批注</strong><br>'+data.annotated_text+'</div>' : '';
+        $('essayResult').innerHTML = '<div style="margin-bottom:12px;"><span style="font-size:1.5rem; font-weight:700; color:var(--accent);">'+(data.score||'--')+'分</span> <span style="margin-left:8px; color:var(--text-secondary);">'+(data.level||'')+'</span></div><div style="margin-bottom:12px;">'+(data.comments||'')+'</div>'+annotated+'<div style="margin-bottom:8px; font-size:0.85rem; color:var(--text-secondary);">详细批改</div>'+diffHtml+'<div style="margin-top:12px; padding:14px; background:var(--card-bg); border-radius:14px; border-left:3px solid var(--accent);"><strong>参考范文</strong><br>'+(data.sample||'')+'</div>';
       } catch(e) { $('essayResult').innerHTML = '<div class="error-text">'+e.message+'</div>'; }
       $('essaySubmitBtn').disabled = false;
     });
 
-    // 对话记录
-    $('chatHistoryBtn2').addEventListener('click', async () => {
-      $('aiToolsModal').style.display = 'none';
-      $('chatHistoryModal').style.display = 'flex';
-      try {
-        const resp = await fetch(`${BACKEND_URL}/api/v1/ai/chat-history`, { headers: authHeaders() });
-        const data = await resp.json();
-        $('chatHistoryList').innerHTML = data.length ? data.map(r => '<div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--input-border); cursor:pointer;" onclick="openChatDetail(\''+r.word+'\')"><span>'+r.word+'</span><span class="text-secondary">'+new Date(r.created_at).toLocaleString()+'</span></div>').join('') : '<div class="empty-state">暂无对话记录</div>';
-      } catch(e) { $('chatHistoryList').innerHTML = '<div class="error-text">加载失败</div>'; }
-    });
-    $('chatHistoryClose').addEventListener('click', () => $('chatHistoryModal').style.display = 'none');
-    window.openChatDetail = async (word) => {
-      $('chatHistoryModal').style.display = 'none';
-      $('chatDetailTitle').textContent = word;
-      $('chatDetailModal').style.display = 'flex';
-      try {
-        const resp = await fetch(`${BACKEND_URL}/api/v1/ai/chat-detail?word=${encodeURIComponent(word)}`, { headers: authHeaders() });
-        const data = await resp.json();
-        $('chatDetailMessages').innerHTML = (data.messages||[]).map(m => '<div style="text-align:'+(m.role==='user'?'right':'left')+'; margin:6px 0;"><span style="background:'+(m.role==='user'?'var(--accent)':'var(--card-bg)')+'; color:var(--text-primary); padding:8px 14px; border-radius:16px; display:inline-block; max-width:80%;'+(m.role==='assistant'?' border:1px solid var(--input-border);':'')+'">'+m.content+'</span></div>').join('');
-      } catch(e) { $('chatDetailMessages').innerHTML = '<div class="error-text">加载失败</div>'; }
-    };
-    $('chatDetailClose').addEventListener('click', () => $('chatDetailModal').style.display = 'none');
     window.resetPwd = async (username, reqId) => {
       if (!confirm('确定重置 ' + username + ' 的密码为 123456？')) return;
       try {
@@ -2039,7 +2200,319 @@
       localStorage.removeItem('jwt_token');
       location.reload();
     });
-    // 主题
+
+    // ==== 深入问答（限10次） ====
+    let deepQCount = 0;
+    $('deepQBtn').addEventListener('click', () => {
+      if (!currentWordData) return alert('请先加载一个单词');
+      $('deepQModal').style.display = 'flex';
+      $('deepQRemaining').textContent = '剩余 ' + (10 - deepQCount) + ' 次';
+      $('deepQMessages').innerHTML = '<div class="empty-state">关于 "'+currentWordData.word+'" 的问答（剩余 '+(10-deepQCount)+' 次）</div>';
+      $('deepQInput').value = '';
+    });
+    $('deepQClose').addEventListener('click', () => $('deepQModal').style.display = 'none');
+    $('deepQSend').addEventListener('click', async () => {
+      const msg = $('deepQInput').value.trim();
+      if (!msg) return;
+      if (deepQCount >= 10) return alert('已达到10次问答上限');
+      deepQCount++;
+      $('deepQRemaining').textContent = '剩余 ' + (10 - deepQCount) + ' 次';
+      $('deepQInput').value = '';
+      const chatBox = $('deepQMessages');
+      chatBox.innerHTML += '<div style="text-align:right;margin:6px 0;"><span style="background:var(--accent);color:#fff;padding:6px 12px;border-radius:12px;display:inline-block;max-width:80%;font-size:0.9rem;">'+escHtml(msg)+'</span></div>';
+      chatBox.scrollTop = chatBox.scrollHeight;
+      try {
+        const resp = await fetch(BACKEND_URL+'/api/v1/ai/chat', { method:'POST', headers: authHeaders(), body: JSON.stringify({ message: '关于单词 "'+currentWordData.word+'" ('+currentWordData.meaning+') 的问题：'+msg, save: false, word: 'deep_qa' }) });
+        const data = await resp.json();
+        chatBox.innerHTML += '<div style="text-align:left;margin:6px 0;"><span style="background:var(--card-bg);color:var(--text-primary);padding:6px 12px;border-radius:12px;display:inline-block;max-width:80%;font-size:0.9rem;border:1px solid var(--input-border);">'+(data.reply||'无回复')+'</span></div>';
+      } catch(e) {
+        chatBox.innerHTML += '<div style="text-align:left;margin:6px 0;"><span style="color:var(--accent-strong);font-size:0.85rem;">连接失败</span></div>';
+      }
+      chatBox.scrollTop = chatBox.scrollHeight;
+    });
+    $('deepQInput').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); $('deepQSend').click(); } });
+
+    // ==== 等级考试 ====
+    let examState = null;
+    let examTimerInterval = null;
+    $('examBtn').addEventListener('click', () => {
+      $('settingsDrawer').classList.remove('open');
+      // 弹出难度选择
+      showConfirm('请确认你要参加哪个等级的考试？选择后不可更改。\n注意：考试时长2.5小时，不可粘贴，不可语音。', () => {
+        $('diffPanel').style.display = 'flex';
+        $('mainUI').style.display = 'none';
+        // 替换开始闯关为开始考试
+        const oldBtn = $('startChallengeBtn');
+        if (!document.getElementById('startExamBtn')) {
+          const examBtn = document.createElement('button');
+          examBtn.className = 'btn primary';
+          examBtn.id = 'startExamBtn';
+          examBtn.textContent = '开始考试';
+          examBtn.style.marginTop = '10px';
+          oldBtn.parentNode.insertBefore(examBtn, oldBtn);
+          oldBtn.style.display = 'none';
+          examBtn.addEventListener('click', startExam);
+        } else {
+          document.getElementById('startExamBtn').style.display = 'flex';
+          oldBtn.style.display = 'none';
+        }
+      });
+    });
+    async function startExam() {
+      document.getElementById('startExamBtn').style.display = 'none';
+      $('diffPanel').style.display = 'none';
+      $('examModal').style.display = 'flex';
+      $('examSentencesArea').innerHTML = '<div class="loader"></div>';
+      $('examLongArea').innerHTML = '';
+      $('examEssayArea').innerHTML = '';
+      $('examSubmitStatus').textContent = '';
+      $('examDiffLabel').textContent = currentDifficulty + ' 等级考试';
+      // 生成题目
+      try {
+        const resp = await fetch(BACKEND_URL+'/api/v1/exam/generate', { method:'POST', headers: authHeaders(), body: JSON.stringify({ difficulty: currentDifficulty }) });
+        const data = await resp.json();
+        if (data.error) throw new Error(data.error);
+        const q = data.questions;
+        examState = { difficulty: currentDifficulty, questions: q, answers: { sentences: [], long_texts: [], essay: '' } };
+        // 渲染题目
+        renderExamSentences(q.sentences || []);
+        renderExamLong(q.long_texts || []);
+        renderExamEssay(q.essay || {});
+        $('examSCount').textContent = (q.sentences||[]).length;
+        $('examLCount').textContent = (q.long_texts||[]).length;
+        // 启动计时
+        startExamTimer();
+      } catch(e) { $('examSentencesArea').innerHTML = '<div class="error-text">生成失败: '+e.message+'</div>'; }
+    }
+    function renderExamSentences(list) {
+      if (!list.length) { $('examSentencesArea').innerHTML = '<div class="empty-state">无题目</div>'; return; }
+      $('examSentencesArea').innerHTML = list.map((q,i) =>
+        '<div style="background:var(--card-bg); border-radius:14px; padding:14px; margin-bottom:10px; border:1px solid var(--input-border);">'+
+        '<div style="font-size:0.85rem; color:var(--accent); margin-bottom:4px;">第'+(i+1)+'题（2分）</div>'+
+        '<div style="margin-bottom:8px;">'+q.chinese+'</div>'+
+        '<textarea class="exam-answer" data-id="'+q.id+'" data-type="sentence" placeholder="你的翻译..." style="min-height:60px; width:100%; padding:10px 14px; background:var(--input-bg); border:1px solid var(--input-border); border-radius:12px; color:var(--text-primary); font-size:0.95rem; outline:none; resize:vertical;" onpaste="return false"></textarea>'+
+        '</div>'
+      ).join('');
+    }
+    function renderExamLong(list) {
+      if (!list.length) { $('examLongArea').innerHTML = '<div class="empty-state">无题目</div>'; return; }
+      $('examLongArea').innerHTML = list.map((q,i) =>
+        '<div style="background:var(--card-bg); border-radius:14px; padding:14px; margin-bottom:10px; border:1px solid var(--input-border);">'+
+        '<div style="font-size:0.85rem; color:var(--accent); margin-bottom:4px;">长篇第'+(i+1)+'题（10分）</div>'+
+        '<div style="margin-bottom:8px; line-height:1.6;">'+q.chinese+'</div>'+
+        '<textarea class="exam-answer" data-id="'+q.id+'" data-type="long" placeholder="你的翻译..." style="min-height:100px; width:100%; padding:10px 14px; background:var(--input-bg); border:1px solid var(--input-border); border-radius:12px; color:var(--text-primary); font-size:0.95rem; outline:none; resize:vertical;" onpaste="return false"></textarea>'+
+        '</div>'
+      ).join('');
+    }
+    function renderExamEssay(essay) {
+      if (!essay.topic) { $('examEssayArea').innerHTML = '<div class="empty-state">无题目</div>'; return; }
+      $('examEssayArea').innerHTML =
+        '<div style="background:var(--card-bg); border-radius:14px; padding:18px; border:1px solid var(--input-border);">'+
+        '<div style="font-size:0.85rem; color:var(--accent); margin-bottom:4px;">作文（100分）</div>'+
+        '<div style="font-size:1.1rem; font-weight:600; color:var(--text-primary); margin-bottom:8px;">'+(essay.topic||'')+'</div>'+
+        '<div style="font-size:0.9rem; color:var(--text-secondary); margin-bottom:12px;">'+(essay.requirement||'')+'</div>'+
+        '<textarea id="examEssayAnswer" placeholder="你的作文..." style="min-height:200px; width:100%; padding:14px; background:var(--input-bg); border:1px solid var(--input-border); border-radius:12px; color:var(--text-primary); font-size:0.95rem; outline:none; resize:vertical;" onpaste="return false"></textarea>'+
+        '</div>';
+    }
+    // Tab 切换
+    document.querySelectorAll('.exam-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.exam-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        $('examSentencesArea').style.display = tab.dataset.tab === 'sentences' ? 'block' : 'none';
+        $('examLongArea').style.display = tab.dataset.tab === 'long' ? 'block' : 'none';
+        $('examEssayArea').style.display = tab.dataset.tab === 'essay' ? 'block' : 'none';
+      });
+    });
+    // 计时器
+    function startExamTimer() {
+      const endTime = Date.now() + 150 * 60000; // 2.5h
+      if (examTimerInterval) clearInterval(examTimerInterval);
+      examTimerInterval = setInterval(() => {
+        const remaining = Math.max(0, Math.floor((endTime - Date.now()) / 1000));
+        const h = Math.floor(remaining / 3600);
+        const m = Math.floor((remaining % 3600) / 60);
+        const s = remaining % 60;
+        $('examTimer').textContent = String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+        if (remaining <= 0) { clearInterval(examTimerInterval); alert('时间到！'); submitExam(); }
+      }, 1000);
+    }
+    // 提交
+    async function submitExam() {
+      if (!examState) return;
+      if (examTimerInterval) clearInterval(examTimerInterval);
+      $('examSubmitBtn').disabled = true; $('examSubmitStatus').textContent = '提交批改中...';
+      // 收集答案
+      const sAnswers = [], lAnswers = [];
+      document.querySelectorAll('.exam-answer[data-type="sentence"]').forEach(el => {
+        sAnswers.push({ id: parseInt(el.dataset.id), translation: el.value.trim() });
+      });
+      document.querySelectorAll('.exam-answer[data-type="long"]').forEach(el => {
+        lAnswers.push({ id: parseInt(el.dataset.id), translation: el.value.trim() });
+      });
+      const eAnswer = ($('examEssayAnswer')||{}).value || '';
+      examState.answers = { sentences: sAnswers, long_texts: lAnswers, essay: eAnswer };
+      try {
+        const resp = await fetch(BACKEND_URL+'/api/v1/exam/submit', { method:'POST', headers: authHeaders(),
+          body: JSON.stringify({ difficulty: examState.difficulty, questions: examState.questions, answers: examState.answers }) });
+        const data = await resp.json();
+        if (data.error) throw new Error(data.error);
+        // 显示结果
+        $('examModal').style.display = 'none';
+        showExamResult(data.result, data.passed);
+      } catch(e) { $('examSubmitStatus').textContent = '提交失败: '+e.message; $('examSubmitBtn').disabled = false; }
+    }
+    $('examSubmitBtn').addEventListener('click', () => {
+      showConfirm('确定提交试卷？提交后不可修改。', submitExam);
+    });
+    $('examBack').addEventListener('click', () => {
+      showConfirm('退出考试将丢失进度，确定退出？', () => {
+        if (examTimerInterval) clearInterval(examTimerInterval);
+        $('examModal').style.display = 'none';
+        examState = null;
+      });
+    });
+    $('examResultBack').addEventListener('click', () => $('examResultModal').style.display = 'none');
+    function showExamResult(result, passed) {
+      $('examResultModal').style.display = 'flex';
+      const sTotal = (result.sentence_scores||[]).reduce((a,b) => a + (b.score||0), 0);
+      const lTotal = (result.long_text_scores||[]).reduce((a,b) => a + (b.score||0), 0);
+      const eScore = result.essay_score?.score || 0;
+      const badgeHtml = passed ? '<div style="text-align:center; margin:16px 0; padding:16px; background:linear-gradient(135deg,var(--accent-light),transparent); border-radius:16px; border:1px solid var(--accent);"><span style="font-size:2rem;">🏆</span><div style="font-size:1rem; color:var(--accent); font-weight:600; margin-top:6px;">获得 '+examState.difficulty+' 等级认证徽章！</div></div>' : '';
+      let sHtml = '';
+      (result.sentence_scores||[]).forEach(s => {
+        sHtml += '<div style="padding:6px 0; border-bottom:1px solid var(--input-border); font-size:0.85rem;"><span style="color:var(--accent);">第'+s.id+'题</span> '+s.score+'/2分'+(s.errors ? ' <span style="color:var(--text-secondary);">'+s.errors+'</span>' : '')+'</div>';
+      });
+      let lHtml = '';
+      (result.long_text_scores||[]).forEach(s => {
+        lHtml += '<div style="padding:6px 0; border-bottom:1px solid var(--input-border); font-size:0.85rem;"><span style="color:var(--accent);">长篇第'+s.id+'题</span> '+s.score+'/10分'+(s.errors ? ' <span style="color:var(--text-secondary);">'+s.errors+'</span>' : '')+'</div>';
+      });
+      $('examResultContent').innerHTML =
+        '<div style="text-align:center; margin-bottom:16px;">'+
+        '<div style="font-size:2.5rem; font-weight:700; color:'+(passed?'var(--accent)':'var(--text-secondary)')+';">'+Math.round(result.total_score)+'/300</div>'+
+        '<div style="font-size:1.2rem; color:'+(passed?'var(--accent)':'var(--accent-strong)')+'; margin-top:4px;">'+(passed?'✓ 通过！获得徽章':'✗ 未通过，220分及格')+'</div>'+
+        '</div>'+
+        badgeHtml+
+        '<div style="display:flex; gap:12px; justify-content:center; margin-bottom:16px;">'+
+        '<div style="text-align:center; background:var(--card-bg); border-radius:12px; padding:10px 16px;"><div style="font-weight:700; color:var(--accent);">'+sTotal+'</div><div style="font-size:0.8rem; color:var(--text-secondary);">单句</div></div>'+
+        '<div style="text-align:center; background:var(--card-bg); border-radius:12px; padding:10px 16px;"><div style="font-weight:700; color:var(--accent);">'+lTotal+'</div><div style="font-size:0.8rem; color:var(--text-secondary);">长篇</div></div>'+
+        '<div style="text-align:center; background:var(--card-bg); border-radius:12px; padding:10px 16px;"><div style="font-weight:700; color:var(--accent);">'+eScore+'</div><div style="font-size:0.8rem; color:var(--text-secondary);">作文</div></div>'+
+        '</div>'+
+        '<div style="margin-bottom:12px; padding:12px; background:var(--card-bg); border-radius:12px; font-size:0.9rem; line-height:1.5;">'+(result.summary||'')+'</div>'+
+        '<div style="margin-bottom:8px; font-weight:500;">单句详情</div>'+sHtml+
+        '<div style="margin:12px 0 8px; font-weight:500;">长篇详情</div>'+lHtml+
+        (result.essay_score ? '<div style="margin:12px 0 8px; font-weight:500;">作文评语</div><div style="font-size:0.9rem; color:var(--text-secondary);">'+(result.essay_score.comment||'')+'</div>' : '');
+    }
+
+    
+    // ==== 考试记录 ====
+    $('examHistoryBtn').addEventListener('click', () => {
+      $('settingsDrawer').classList.remove('open');
+      $('examHistoryModal').style.display = 'flex';
+      loadExamHistory();
+    });
+    
+    $('examHistoryFilter').addEventListener('change', loadExamHistory);
+    async function loadExamHistory() {
+      const filter = $('examHistoryFilter').value;
+      try {
+        const resp = await fetch(BACKEND_URL+'/api/v1/exam/results', { headers: authHeaders() });
+        let data = await resp.json();
+        if (filter) data = data.filter(e => e.difficulty === filter);
+        if (!data.length) { $('examHistoryList').innerHTML = '<div class="empty-state">暂无考试记录</div>'; return; }
+        $('examHistoryList').innerHTML = data.map(e =>
+          '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--input-border);cursor:pointer;" onclick="openExamDetail('+e.id+')">'+
+            '<div><span style="color:var(--accent);font-weight:500;">'+e.difficulty+'</span> '+(e.passed?'<span style="color:var(--accent);font-size:0.8rem;">通过</span>':'<span style="color:var(--accent-strong);font-size:0.8rem;">未通过</span>')+'</div>'+
+            '<div><span style="color:var(--text-primary);font-weight:600;">'+Math.round(e.score)+'</span><span style="color:var(--text-secondary);font-size:0.85rem;">/300</span></div>'+
+          '</div>'
+        ).join('');
+      } catch(e) { $('examHistoryList').innerHTML = '<div class="error-text">加载失败</div>'; }
+    $('examHistoryClose').addEventListener('click', () => $('examHistoryModal').style.display = 'none');
+    $('examDetailClose').addEventListener('click', () => $('examDetailModal').style.display = 'none');
+    $('wrongQClose').addEventListener('click', () => $('wrongQModal').style.display = 'none');
+
+    }
+    
+    window.openExamDetail = async (id) => {
+      $('examDetailModal').style.display = 'flex';
+      $('examDetailContent').innerHTML = '<div class="loader"></div>';
+      try {
+        const resp = await fetch(BACKEND_URL+'/api/v1/exam/detail/'+id, { headers: authHeaders() });
+        const d = await resp.json();
+        if (d.error) throw new Error(d.error);
+        const sCorrect = d.questions.filter(q => q.question_type==='sentence' && q.score >= q.max_score).length;
+        const sTotal = d.questions.filter(q => q.question_type==='sentence').length;
+        const lCorrect = d.questions.filter(q => q.question_type==='long_text' && q.score >= q.max_score).length;
+        const lTotal = d.questions.filter(q => q.question_type==='long_text').length;
+        const essayQ = d.questions.filter(q => q.question_type==='essay')[0];
+        const eScore = essayQ ? essayQ.score : 0;
+        let h = '<div style="display:flex;gap:12px;justify-content:center;margin-bottom:16px;">'+
+          '<div style="text-align:center;background:var(--card-bg);border-radius:12px;padding:8px 14px;"><div style="font-weight:700;color:var(--accent);">'+Math.round(d.exam.score)+'/'+d.exam.total_possible+'</div><div style="font-size:0.8rem;color:var(--text-secondary);">总分</div></div>'+
+          '<div style="text-align:center;background:var(--card-bg);border-radius:12px;padding:8px 14px;"><div style="font-weight:700;color:var(--accent);">'+sCorrect+'/'+sTotal+'</div><div style="font-size:0.8rem;color:var(--text-secondary);">单句</div></div>'+
+          '<div style="text-align:center;background:var(--card-bg);border-radius:12px;padding:8px 14px;"><div style="font-weight:700;color:var(--accent);">'+lCorrect+'/'+lTotal+'</div><div style="font-size:0.8rem;color:var(--text-secondary);">长篇</div></div>'+
+          '<div style="text-align:center;background:var(--card-bg);border-radius:12px;padding:8px 14px;"><div style="font-weight:700;color:var(--accent);">'+eScore+'/100</div><div style="font-size:0.8rem;color:var(--text-secondary);">作文</div></div>'+
+        '</div>';
+        h += '<div style="max-height:40vh;overflow-y:auto;">';
+        d.questions.filter(q => q.question_type !== 'essay').forEach(q => {
+          const label = q.question_type === 'sentence' ? '第'+q.question_index+'题' : '长篇'+q.question_index+'题';
+          const color = q.score >= q.max_score ? 'var(--accent)' : 'var(--accent-strong)';
+          const icon = q.score >= q.max_score ? '✓' : '✗';
+          h += '<div style="padding:8px 0;border-bottom:1px solid var(--input-border);font-size:0.85rem;">'+
+            '<div style="display:flex;justify-content:space-between;"><span style="color:var(--accent);">'+label+'</span><span style="color:'+color+';">'+icon+' '+q.score+'/'+q.max_score+'分</span></div>'+
+            (q.correct_answer ? '<div style="color:var(--text-secondary);margin:2px 0;">'+q.correct_answer+'</div>' : '')+
+            (q.user_answer ? '<div style="color:var(--text-primary);">答: '+q.user_answer+'</div>' : '')+
+            (q.ai_feedback ? '<div style="color:var(--text-secondary);font-size:0.8rem;">'+q.ai_feedback+'</div>' : '')+
+          '</div>';
+        });
+        h += '</div>';
+        if (essayQ) {
+          h += '<div style="margin-top:12px;padding:12px;background:var(--card-bg);border-radius:12px;">'+
+            '<div style="font-weight:500;margin-bottom:6px;">作文 ('+eScore+'/100分)</div>'+
+            (essayQ.user_answer ? '<div style="font-size:0.85rem;color:var(--text-primary);margin-bottom:4px;">'+escHtml(essayQ.user_answer)+'</div>' : '')+
+            (essayQ.ai_feedback ? '<div style="font-size:0.85rem;color:var(--text-secondary);">评语: '+essayQ.ai_feedback+'</div>' : '')+
+          '</div>';
+        }
+        $('examDetailContent').innerHTML = h;
+        $('examDetailTitle').textContent = d.exam.difficulty + ' 考试详情';
+      } catch(e) { $('examDetailContent').innerHTML = '<div class="error-text">加载失败: '+e.message+'</div>'; }
+    }
+
+    // ==== 错题本 ====
+    $('wrongQBtn').addEventListener('click', () => {
+      $('settingsDrawer').classList.remove('open');
+      $('wrongQModal').style.display = 'flex';
+      loadWrongQuestions();
+    });
+    
+    async function loadWrongQuestions() {
+      $('wrongQList').innerHTML = '<div class="empty-state">加载中...</div>';
+      try {
+        const resp = await fetch(BACKEND_URL+'/api/v1/exam/wrong-questions', { headers: authHeaders() });
+        const data = await resp.json();
+        if (!data.length) { $('wrongQList').innerHTML = '<div class="empty-state">暂无错题，继续保持！</div>'; return; }
+        $('wrongQList').innerHTML = data.map(q =>
+          '<div style="padding:10px 0;border-bottom:1px solid var(--input-border);">'+
+            '<div style="display:flex;justify-content:space-between;"><span style="color:var(--accent);font-size:0.85rem;">'+q.difficulty+'</span><span style="color:var(--accent-strong);font-size:0.85rem;">'+q.score+'/'+q.max_score+'分</span></div>'+
+            '<div style="font-size:0.9rem;color:var(--text-primary);margin:4px 0;">'+(q.correct_answer||'')+'</div>'+
+            '<div style="font-size:0.85rem;color:var(--text-secondary);">你的答案: '+(q.user_answer||'未作答')+'</div>'+
+            (q.ai_feedback ? '<div style="font-size:0.8rem;color:var(--text-secondary);">'+q.ai_feedback+'</div>' : '')+
+          '</div>'
+        ).join('');
+      } catch(e) { $('wrongQList').innerHTML = '<div class="error-text">加载失败</div>'; }
+    }
+
+    // ==== 考试排行隐私开关 ====
+    const examOptOut = localStorage.getItem('exam_opt_out') === 'true';
+    $('examOptOutCheckbox').checked = examOptOut;
+    if (examOptOut) $('examOptOutTrack').classList.add('on');
+    $('examOptOutCheckbox').addEventListener('change', async () => {
+      const val = $('examOptOutCheckbox').checked;
+      $('examOptOutTrack').classList.toggle('on', val);
+      localStorage.setItem('exam_opt_out', val);
+      try { await fetch(BACKEND_URL+'/api/v1/user/exam-opt-out', { method:'PUT', headers: authHeaders(), body: JSON.stringify({ optOut: val }) }); } catch(e) {}
+    });
+
+// 主题
     const themeSelect = $('themeSelect');
     function applyTheme(n) { document.body.className = document.body.className.replace(/theme-\S+/g,''); document.body.classList.add(`theme-${n}`); localStorage.setItem('vocab_theme', n); }
     themeSelect.value = localStorage.getItem('vocab_theme') || 'pink-dark'; applyTheme(themeSelect.value);
@@ -2130,6 +2603,31 @@
       $('profileTaglineInput').value = tagline;
       $('profileStatus').value = status;
       $('profileStatusDot').className = 'status-dot ' + status;
+      // 加载徽章
+      fetch(BACKEND_URL+'/api/v1/exam/badges', { headers: authHeaders() }).then(r=>r.json()).then(badges => {
+        if (badges.length) {
+          $('badgeArea').style.display = 'block';
+          $('badgeList').innerHTML = badges.map(b =>
+            '<span style="white-space:nowrap; background:var(--accent-light); border:1px solid var(--accent); border-radius:20px; padding:4px 12px; font-size:0.8rem; color:var(--accent); font-weight:500;">\u{1F3C6} '+b.difficulty+' 认证</span>'
+          ).join('');
+        } else { $('badgeArea').style.display = 'none'; }
+      }).catch(() => { $('badgeArea').style.display = 'none'; });
+      // 加载最近动态
+      Promise.all([
+        fetch(BACKEND_URL+'/api/v1/practice-logs?limit=5', { headers: authHeaders() }).then(r=>r.json()).catch(()=>({rows:[]})),
+        fetch(BACKEND_URL+'/api/v1/exam/results', { headers: authHeaders() }).then(r=>r.json()).catch(()=>[])
+      ]).then(([logs, exams]) => {
+        const items = [];
+        (logs.rows||[]).forEach(l => items.push({ time: l.created_at, text: '翻译了 "'+l.word+'" 得分 '+l.score_total }));
+        (exams||[]).forEach(e => items.push({ time: e.created_at, text: (e.passed?'通过了':'参加了')+' '+e.difficulty+' 等级考试'+(e.passed?' 获得徽章':'') }));
+        items.sort((a,b) => new Date(b.time)-new Date(a.time));
+        if (items.length) {
+          $('recentActivity').style.display = 'block';
+          $('activityList').innerHTML = items.slice(0,10).map(i =>
+            '<div style="padding:4px 0; border-bottom:1px solid var(--input-border);">'+i.text+'</div>'
+          ).join('');
+        } else { $('recentActivity').style.display = 'none'; }
+      }).catch(() => { $('recentActivity').style.display = 'none'; });
       if (jwtToken) {
         fetch(BACKEND_URL+'/api/v1/user/profile', { headers: authHeaders() })
           .then(r => r.json()).then(d => {
@@ -2143,6 +2641,7 @@
     $('profileModalClose').addEventListener('click', () => $('profileModal').style.display = 'none');
     $('saveProfileBtn').addEventListener('click', async () => {
       const tagline = $('profileTaglineInput').value.trim();
+      if (tagline && checkProfanity(tagline)) return alert('个性签名包含违规内容');
       const st = $('profileStatus').value;
       localStorage.setItem(userKey('user_tagline'), tagline);
       localStorage.setItem(userKey('user_status'), st);
