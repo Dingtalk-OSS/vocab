@@ -825,7 +825,7 @@
   <!-- 错题本弹窗 -->
   <div id="wrongQModal" class="modal-overlay" style="display:none;">
     <div class="modal-card" style="max-width:500px;">
-      <button class="modal-close-btn" id="wrongQClose">X</button>
+      <button class="modal-close-btn" id="wrongQClose" onclick="document.getElementById('wrongQModal').style.display='none'">X</button>
       <h4>错题本</h4>
       <div id="wrongQList" style="max-height:55vh; overflow-y:auto;"></div>
     </div>
