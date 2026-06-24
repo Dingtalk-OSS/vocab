@@ -158,6 +158,96 @@ db.exec(`CREATE TABLE IF NOT EXISTS exam_question_results (
   FOREIGN KEY (exam_id) REFERENCES exam_results(id)
 )`);
 try { db.exec('ALTER TABLE users ADD COLUMN exam_opt_out INTEGER DEFAULT 0'); } catch(e) {}
+// 用户身份和学校
+try { db.exec("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'student'"); } catch(e) {}
+try { db.exec("ALTER TABLE users ADD COLUMN school TEXT DEFAULT ''"); } catch(e) {}
+try { db.exec("ALTER TABLE users ADD COLUMN teacher_api_key_shared INTEGER DEFAULT 0"); } catch(e) {}
+
+// 班级表
+db.exec(`CREATE TABLE IF NOT EXISTS classes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  teacher_id INTEGER NOT NULL,
+  name TEXT NOT NULL,
+  school TEXT DEFAULT '',
+  class_code TEXT UNIQUE,
+  code_expires_at DATETIME,
+  active INTEGER DEFAULT 1,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (teacher_id) REFERENCES users(id)
+)`);
+
+// 班成员
+db.exec(`CREATE TABLE IF NOT EXISTS class_members (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  class_id INTEGER NOT NULL,
+  student_id INTEGER NOT NULL,
+  use_teacher_key INTEGER DEFAULT 0,
+  joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(class_id, student_id),
+  FOREIGN KEY (class_id) REFERENCES classes(id),
+  FOREIGN KEY (student_id) REFERENCES users(id)
+)`);
+
+// 班级任务
+db.exec(`CREATE TABLE IF NOT EXISTS class_tasks (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  class_id INTEGER NOT NULL,
+  teacher_id INTEGER NOT NULL,
+  title TEXT NOT NULL,
+  difficulty TEXT NOT NULL,
+  word_count INTEGER DEFAULT 10,
+  quality_requirement INTEGER DEFAULT 80,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (class_id) REFERENCES classes(id)
+)`);
+
+// 任务进度
+db.exec(`CREATE TABLE IF NOT EXISTS task_progress (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  task_id INTEGER NOT NULL,
+  student_id INTEGER NOT NULL,
+  completed_count INTEGER DEFAULT 0,
+  total_count INTEGER DEFAULT 0,
+  qualified_count INTEGER DEFAULT 0,
+  status TEXT DEFAULT 'not_started',
+  submitted_at DATETIME,
+  FOREIGN KEY (task_id) REFERENCES class_tasks(id)
+)`);
+
+// 班级公告
+db.exec(`CREATE TABLE IF NOT EXISTS class_announcements (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  class_id INTEGER NOT NULL,
+  teacher_id INTEGER NOT NULL,
+  content TEXT NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (class_id) REFERENCES classes(id)
+)`);
+
+// API 用量日志
+db.exec(`CREATE TABLE IF NOT EXISTS api_usage_logs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  class_id INTEGER,
+  student_id INTEGER NOT NULL,
+  call_count INTEGER DEFAULT 0,
+  date TEXT NOT NULL,
+  UNIQUE(student_id, date),
+  FOREIGN KEY (student_id) REFERENCES users(id)
+)`);
+
+// 通知
+db.exec(`CREATE TABLE IF NOT EXISTS notifications (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  type TEXT NOT NULL,
+  content TEXT,
+  class_id INTEGER,
+  link TEXT,
+  is_read INTEGER DEFAULT 0,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id)
+)`);
+
 
 // 词库表（管理员维护的单词池）
 db.exec(`CREATE TABLE IF NOT EXISTS word_bank (
@@ -273,11 +363,12 @@ app.post('/api/v1/auth/register', async (req, res) => {
     rateLimit('reg:' + ip, 3, 3600000); // 每 IP 每小时最多注册 3 次
     const username = sanitize(req.body.username || '');
     const password = req.body.password || '';
+    const role = req.body.role === 'teacher' ? 'teacher' : 'student';
     if (!username || !password) return res.status(400).json({ error: '用户名和密码不能为空' });
     validateUsername(username);
     if (password.length < 4) return res.status(400).json({ error: '密码至少 4 个字符' });
     const hash = await bcrypt.hash(password, 10);
-    db.prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)').run(username, hash);
+    db.prepare('INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)').run(username, hash, role);
     res.json({ message: '注册成功' });
   } catch (e) {
     if (e.code === 'SQLITE_CONSTRAINT_UNIQUE') return res.status(409).json({ error: '用户名已存在' });
@@ -313,7 +404,7 @@ app.post('/api/v1/auth/login', async (req, res) => {
     const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' });
     // 记录登录
     try { db.prepare('INSERT INTO login_logs (user_id, ip) VALUES (?, ?)').run(user.id, ip); } catch(e) {}
-    res.json({ token, userId: user.id, username: user.username });
+    res.json({ token, userId: user.id, username: user.username, role: user.role || 'student', school: user.school || '' });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -455,7 +546,7 @@ const TRANSLATE_PROMPTS = {
 
 // 生成单词
 // 难度字符串→数值映射（用于 AI prompt 分级）
-function diffToNum(s) { return {L1:1,L2:2,L3:3,L4:4,L5:5,L6:6,CET4:4,CET6:5,kaoyan:6}[s] || 1; }
+function diffToNum(s) { return {L1:1,L2:2,L3:3,L4:4,L5:5,L6:6,CET4:4,CET6:5,kaoyan:6,MS:1,HS:2,TOEFL:5,IELTS:6}[s] || 1; }
 
 app.post('/api/v1/words/generate', async (req, res) => {
   try {
@@ -1353,6 +1444,233 @@ app.get('/api/v1/exam/badges', (req, res) => {
     if (e.message === '未登录') return res.json([]);
     res.status(500).json({ error: e.message });
   }
+});
+
+
+// ==== 班级系统 ====
+
+function genClassCode() {
+  var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789', r = '';
+  for (var i = 0; i < 8; i++) r += chars[Math.floor(Math.random() * chars.length)];
+  return r;
+}
+
+// 创建班级
+app.post('/api/v1/class/create', function(req, res) {
+  try {
+    var userId = getUserId(req);
+    var user = db.prepare('SELECT role, school FROM users WHERE id = ?').get(userId);
+    if (user.role !== 'teacher') return res.status(403).json({ error: '仅教师可创建班级' });
+    var name = req.body.name, school = req.body.school || user.school || '';
+    if (!name) return res.status(400).json({ error: '请填写班级名称' });
+    var classCode = genClassCode();
+    var expiresAt = new Date(Date.now() + 86400000).toISOString();
+    var r2 = db.prepare('INSERT INTO classes (teacher_id, name, school, class_code, code_expires_at) VALUES (?,?,?,?,?)').run(userId, name, school, classCode, expiresAt);
+    res.json({ id: r2.lastInsertRowid, name: name, class_code: classCode, code_expires_at: expiresAt });
+  } catch(e) { if (e.message === '未登录') return res.status(401).json({error:e.message}); res.status(500).json({error:e.message}); }
+});
+
+// 加入班级
+app.post('/api/v1/class/join', function(req, res) {
+  try {
+    var userId = getUserId(req), code = (req.body.code||'').toUpperCase();
+    if (!code) return res.status(400).json({ error: '请输入班级码' });
+    var cls = db.prepare('SELECT * FROM classes WHERE class_code = ?').get(code);
+    if (!cls) return res.status(404).json({ error: '班级码无效' });
+    if (!cls.active) return res.status(400).json({ error: '班级已解散' });
+    if (new Date(cls.code_expires_at) < new Date()) return res.status(400).json({ error: '班级码已过期' });
+    var existing = db.prepare('SELECT id FROM class_members WHERE class_id=? AND student_id=?').get(cls.id, userId);
+    if (existing) return res.status(400).json({ error: '你已在班级中' });
+    db.prepare('INSERT INTO class_members (class_id, student_id) VALUES (?,?)').run(cls.id, userId);
+    if (cls.school) { try { db.prepare('UPDATE users SET school=? WHERE id=?').run(cls.school, userId); } catch(e2) {} }
+    res.json({ id: cls.id, name: cls.name, school: cls.school });
+  } catch(e) { if (e.message === '未登录') return res.status(401).json({error:e.message}); res.status(500).json({error:e.message}); }
+});
+
+// 班级列表
+app.get('/api/v1/class/list', function(req, res) {
+  try {
+    var userId = getUserId(req), user = db.prepare('SELECT role FROM users WHERE id=?').get(userId);
+    if (user.role === 'teacher') {
+      var rows = db.prepare('SELECT id,name,school,class_code,code_expires_at FROM classes WHERE teacher_id=? AND active=1 ORDER BY created_at DESC').all(userId);
+    } else {
+      rows = db.prepare('SELECT c.id,c.name,c.school,c.teacher_id,u.username as teacher_name,cm.joined_at FROM class_members cm JOIN classes c ON cm.class_id=c.id JOIN users u ON c.teacher_id=u.id WHERE cm.student_id=? AND c.active=1 ORDER BY cm.joined_at DESC').all(userId);
+    }
+    res.json(rows);
+  } catch(e) { if (e.message === '未登录') return res.status(401).json({error:e.message}); res.status(500).json({error:e.message}); }
+});
+
+// 班级详情
+app.get('/api/v1/class/:id/detail', function(req, res) {
+  try {
+    var userId = getUserId(req);
+    var cls = db.prepare('SELECT c.*,u.username as teacher_name,u.teacher_api_key_shared FROM classes c JOIN users u ON c.teacher_id=u.id WHERE c.id=?').get(req.params.id);
+    if (!cls) return res.status(404).json({error:'班级不存在'});
+    var memberCount = db.prepare('SELECT COUNT(*) as c FROM class_members WHERE class_id=?').get(cls.id).c;
+    var isM = db.prepare('SELECT id FROM class_members WHERE class_id=? AND student_id=?').get(cls.id, userId);
+    var role = db.prepare('SELECT role FROM users WHERE id=?').get(userId).role;
+    res.json({id:cls.id,name:cls.name,school:cls.school,teacher_name:cls.teacher_name,class_code:cls.class_code,code_expires_at:cls.code_expires_at,memberCount:memberCount,isMember:!!isM,currentUserRole:role,teacher_api_key_shared:cls.teacher_api_key_shared});
+  } catch(e) { if (e.message === '未登录') return res.status(401).json({error:e.message}); res.status(500).json({error:e.message}); }
+});
+
+// 刷新班级码
+app.post('/api/v1/class/refresh-code', function(req, res) {
+  try {
+    var userId = getUserId(req), classId = req.body.classId;
+    var cls = db.prepare('SELECT * FROM classes WHERE id=? AND teacher_id=?').get(classId, userId);
+    if (!cls) return res.status(404).json({error:'班级不存在'});
+    var nc = genClassCode(), ea = new Date(Date.now()+86400000).toISOString();
+    db.prepare('UPDATE classes SET class_code=?, code_expires_at=? WHERE id=?').run(nc, ea, classId);
+    var ms = db.prepare('SELECT student_id FROM class_members WHERE class_id=?').all(classId);
+    ms.forEach(function(m) { db.prepare('INSERT INTO notifications (user_id,type,content,class_id) VALUES (?,?,?,?)').run(m.student_id,'code_updated','班级码已更新',classId); });
+    res.json({class_code:nc,code_expires_at:ea});
+  } catch(e) { if (e.message === '未登录') return res.status(401).json({error:e.message}); res.status(500).json({error:e.message}); }
+});
+
+// 解散/退出班级
+app.post('/api/v1/class/leave', function(req, res) {
+  try {
+    var userId = getUserId(req), classId = req.body.classId, user = db.prepare('SELECT role FROM users WHERE id=?').get(userId);
+    if (user.role === 'teacher') { db.prepare('UPDATE classes SET active=0 WHERE id=? AND teacher_id=?').run(classId, userId); }
+    else { db.prepare('DELETE FROM class_members WHERE class_id=? AND student_id=?').run(classId, userId); }
+    res.json({success:true});
+  } catch(e) { if (e.message === '未登录') return res.status(401).json({error:e.message}); res.status(500).json({error:e.message}); }
+});
+
+// 班级排行榜
+app.get('/api/v1/class/:id/leaderboard', function(req, res) {
+  try {
+    var cls = db.prepare('SELECT * FROM classes WHERE id=?').get(req.params.id);
+    if (!cls) return res.status(404).json({error:'班级不存在'});
+    var filter = req.query.filter || 'all', dateWhere = '';
+    var params = [];
+    if (filter === 'week') { dateWhere = 'AND l.created_at >= datetime(\'now\', \'-7 days\')'; }
+    else if (filter === 'month') { dateWhere = 'AND l.created_at >= datetime(\'now\', \'-30 days\')'; }
+    var members = db.prepare('SELECT u.id,u.username,COALESCE(u.display_name,u.username) as display_name,COUNT(l.id) as total_practices,COALESCE(SUM(CASE WHEN l.score_total>=80 THEN 1 ELSE 0 END),0) as high_quality_count,ROUND(AVG(l.score_total),1) as avg_score FROM class_members cm JOIN users u ON cm.student_id=u.id LEFT JOIN practice_logs l ON u.id=l.user_id ' + dateWhere + ' WHERE cm.class_id=? GROUP BY u.id ORDER BY high_quality_count DESC').all(cls.id);
+    res.json(members);
+  } catch(e) { if (e.message === '未登录') return res.status(401).json({error:e.message}); res.status(500).json({error:e.message}); }
+});
+
+// 发布任务
+app.post('/api/v1/class/task/create', function(req, res) {
+  try {
+    var userId = getUserId(req), user = db.prepare('SELECT role FROM users WHERE id=?').get(userId);
+    if (user.role !== 'teacher') return res.status(403).json({error:'仅教师可发布任务'});
+    var classId = req.body.classId, title = req.body.title, diff = req.body.difficulty, wc = req.body.wordCount||10, qr = req.body.qualityRequirement||80;
+    if (!classId||!title||!diff) return res.status(400).json({error:'参数不完整'});
+    var r = db.prepare('INSERT INTO class_tasks (class_id,teacher_id,title,difficulty,word_count,quality_requirement) VALUES (?,?,?,?,?,?)').run(classId,userId,title,diff,wc,qr);
+    var ms = db.prepare('SELECT student_id FROM class_members WHERE class_id=?').all(classId);
+    var ins = db.prepare('INSERT INTO task_progress (task_id,student_id,total_count) VALUES (?,?,?)');
+    ms.forEach(function(m) { ins.run(r.lastInsertRowid, m.student_id, wc); });
+    ms.forEach(function(m) { db.prepare('INSERT INTO notifications (user_id,type,content,class_id) VALUES (?,?,?,?)').run(m.student_id,'new_task',title,classId); });
+    res.json({id:r.lastInsertRowid});
+  } catch(e) { if (e.message === '未登录') return res.status(401).json({error:e.message}); res.status(500).json({error:e.message}); }
+});
+
+// 任务列表
+app.get('/api/v1/class/:id/tasks', function(req, res) {
+  try {
+    var userId = getUserId(req);
+    var tasks = db.prepare('SELECT t.*,tp.status,tp.completed_count,tp.qualified_count,tp.total_count FROM class_tasks t LEFT JOIN task_progress tp ON t.id=tp.task_id AND tp.student_id=? WHERE t.class_id=? ORDER BY t.created_at DESC').all(userId, req.params.id);
+    res.json(tasks);
+  } catch(e) { if (e.message === '未登录') return res.status(401).json({error:e.message}); res.status(500).json({error:e.message}); }
+});
+
+// 更新任务进度
+app.post('/api/v1/class/task/progress', function(req, res) {
+  try {
+    var userId = getUserId(req), taskId = req.body.taskId, completed = req.body.completed||0, qualified = req.body.qualified||0;
+    var tp = db.prepare('SELECT * FROM task_progress WHERE task_id=? AND student_id=?').get(taskId, userId);
+    if (!tp) return res.status(404).json({error:'任务不存在'});
+    var nc = (tp.completed_count||0)+completed, nq = (tp.qualified_count||0)+qualified, st = 'in_progress';
+    if (nc >= tp.total_count) st = 'completed';
+    db.prepare('UPDATE task_progress SET completed_count=?,qualified_count=?,status=? WHERE id=?').run(nc, nq, st, tp.id);
+    res.json({completed:nc,total:tp.total_count,status:st});
+  } catch(e) { if (e.message === '未登录') return res.status(401).json({error:e.message}); res.status(500).json({error:e.message}); }
+});
+
+// API Key 共享开关
+app.put('/api/v1/class/toggle-key-sharing', function(req, res) {
+  try {
+    var userId = getUserId(req), classId = req.body.classId, shared = req.body.shared;
+    var cls = db.prepare('SELECT id FROM classes WHERE id=? AND teacher_id=?').get(classId, userId);
+    if (!cls) return res.status(404).json({error:'班级不存在'});
+    db.prepare('UPDATE users SET teacher_api_key_shared=? WHERE id=?').run(shared?1:0, userId);
+    if (!shared) { db.prepare('UPDATE class_members SET use_teacher_key=0 WHERE class_id=?').run(classId); }
+    res.json({success:true,shared:!!shared});
+  } catch(e) { if (e.message === '未登录') return res.status(401).json({error:e.message}); res.status(500).json({error:e.message}); }
+});
+
+// 学生切换Key
+app.put('/api/v1/class/use-teacher-key', function(req, res) {
+  try {
+    var userId = getUserId(req), classId = req.body.classId, useKey = req.body.useKey;
+    var t = db.prepare('SELECT c.id,u.teacher_api_key_shared FROM classes c JOIN users u ON c.teacher_id=u.id WHERE c.id=?').get(classId);
+    if (!t) return res.status(404).json({error:'班级不存在'});
+    if (useKey && !t.teacher_api_key_shared) return res.status(400).json({error:'老师未开启Key共享'});
+    db.prepare('UPDATE class_members SET use_teacher_key=? WHERE class_id=? AND student_id=?').run(useKey?1:0, classId, userId);
+    res.json({success:true});
+  } catch(e) { if (e.message === '未登录') return res.status(401).json({error:e.message}); res.status(500).json({error:e.message}); }
+});
+
+// 用量统计
+app.get('/api/v1/class/:id/usage', function(req, res) {
+  try {
+    var userId = getUserId(req);
+    var cls = db.prepare('SELECT id FROM classes WHERE id=? AND teacher_id=?').get(req.params.id, userId);
+    if (!cls) return res.status(403).json({error:'无权限'});
+    var rows = db.prepare('SELECT u.username,COALESCE(SUM(a.call_count),0) as total_calls FROM class_members cm JOIN users u ON cm.student_id=u.id LEFT JOIN api_usage_logs a ON u.id=a.student_id WHERE cm.class_id=? GROUP BY u.id ORDER BY total_calls DESC').all(cls.id);
+    res.json(rows);
+  } catch(e) { if (e.message === '未登录') return res.status(401).json({error:e.message}); res.status(500).json({error:e.message}); }
+});
+
+// 成员列表
+app.get('/api/v1/class/:id/members', function(req, res) {
+  try {
+    var rows = db.prepare('SELECT u.id,u.username,COALESCE(u.display_name,u.username) as display_name,u.school,cm.use_teacher_key,cm.joined_at FROM class_members cm JOIN users u ON cm.student_id=u.id WHERE cm.class_id=? ORDER BY cm.joined_at').all(req.params.id);
+    res.json(rows);
+  } catch(e) { if (e.message === '未登录') return res.status(401).json({error:e.message}); res.status(500).json({error:e.message}); }
+});
+
+// 公告
+app.post('/api/v1/class/announcement', function(req, res) {
+  try {
+    var userId = getUserId(req), classId = req.body.classId, content = req.body.content;
+    if (!content) return res.status(400).json({error:'请输入公告'});
+    var cls = db.prepare('SELECT id FROM classes WHERE id=? AND teacher_id=?').get(classId, userId);
+    if (!cls) return res.status(403).json({error:'无权限'});
+    var r = db.prepare('INSERT INTO class_announcements (class_id,teacher_id,content) VALUES (?,?,?)').run(classId, userId, content);
+    var ms = db.prepare('SELECT student_id FROM class_members WHERE class_id=?').all(classId);
+    ms.forEach(function(m) { db.prepare('INSERT INTO notifications (user_id,type,content,class_id) VALUES (?,?,?,?)').run(m.student_id,'new_announcement',content.substring(0,50),classId); });
+    res.json({id:r.lastInsertRowid});
+  } catch(e) { if (e.message === '未登录') return res.status(401).json({error:e.message}); res.status(500).json({error:e.message}); }
+});
+
+// 公告列表
+app.get('/api/v1/class/:id/announcements', function(req, res) {
+  try {
+    var rows = db.prepare('SELECT a.*,u.username as teacher_name FROM class_announcements a JOIN users u ON a.teacher_id=u.id WHERE a.class_id=? ORDER BY a.created_at DESC LIMIT 20').all(req.params.id);
+    res.json(rows);
+  } catch(e) { if (e.message === '未登录') return res.status(401).json({error:e.message}); res.status(500).json({error:e.message}); }
+});
+
+// 通知
+app.get('/api/v1/notifications', function(req, res) {
+  try {
+    var userId = getUserId(req);
+    var rows = db.prepare('SELECT * FROM notifications WHERE user_id=? ORDER BY created_at DESC LIMIT 50').all(userId);
+    var unread = db.prepare('SELECT COUNT(*) as c FROM notifications WHERE user_id=? AND is_read=0').get(userId).c;
+    res.json({notifications:rows,unread:unread});
+  } catch(e) { if (e.message === '未登录') return res.status(401).json({error:e.message}); res.status(500).json({error:e.message}); }
+});
+
+// 通知已读
+app.put('/api/v1/notifications/read/:id', function(req, res) {
+  try {
+    var userId = getUserId(req);
+    db.prepare('UPDATE notifications SET is_read=1 WHERE id=? AND user_id=?').run(req.params.id, userId);
+    res.json({success:true});
+  } catch(e) { if (e.message === '未登录') return res.status(401).json({error:e.message}); res.status(500).json({error:e.message}); }
 });
 
 app.get('/api/v1/health', (req, res) => res.json({ status: 'ok' }));

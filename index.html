@@ -189,8 +189,8 @@
     /* 设置面板按钮间距 */
     .setup-actions { display:flex; flex-direction:column; gap:10px; width:100%; margin-top:4px; position:relative; z-index:1; }
     /* 难度选择 */
-    .difficulty-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; width:100%; max-width:500px; }
-    .diff-card { background:var(--card-bg); border:1px solid var(--input-border); border-radius:20px; padding:16px 12px; text-align:center; cursor:pointer; transition:all 0.25s; backdrop-filter:blur(8px); position:relative; }
+    .difficulty-grid { display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:10px; width:100%; max-width:650px; }
+    .diff-card { background:var(--card-bg); border:1px solid var(--accent-light); border-radius:20px; padding:16px 12px; text-align:center; cursor:pointer; transition:all 0.25s; backdrop-filter:blur(8px); position:relative; }
     .diff-card:hover { border-color:var(--accent); transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,0,0,0.15); }
     .diff-card.selected { border-color:var(--accent); background:var(--accent-light); box-shadow:0 0 20px var(--accent-light); }
     .diff-card .diff-num { font-size:0.75rem; color:var(--accent); font-weight:700; }
@@ -231,7 +231,7 @@
     /* ===== 响应式：平板/电脑端适配 ===== */
     @media (min-width: 768px) {
       body { padding:40px 40px; }
-      .app { max-width:720px; }
+      .app { max-width:960px; }
       .difficulty-grid { grid-template-columns:1fr 1fr 1fr; gap:14px; max-width:600px; }
       .top-bar { gap:16px; padding:8px 24px; }
       .top-stat { font-size:0.95rem; }
@@ -254,6 +254,7 @@
     <span class="top-divider"></span>
     <span class="top-stat clickable" id="todayStats">今日 0词 · -- · 0s</span>
     <span class="top-divider"></span>
+    <span class="top-stat clickable" id="notifBell" style="position:relative;">通知<span id="notifBadge" style="display:none;position:absolute;top:-4px;right:-10px;background:#ff4444;color:#fff;font-size:0.65rem;padding:1px 5px;border-radius:8px;line-height:1.2;"></span></span>
     <span class="top-stat clickable" id="exitPracticeBtn" style="display:none; color:var(--accent-strong);">退出练习</span>
   </div>
 
@@ -296,6 +297,10 @@
       <div style="font-size:1.8rem; color:var(--text-primary); font-weight:600;">登录 / 注册</div>
       <input type="text" id="authUsername" placeholder="用户名" style="max-width:300px;">
       <input type="password" id="authPassword" placeholder="密码" style="max-width:300px;">
+      <select id="authRole" style="max-width:300px;">
+        <option value="student">学生</option>
+        <option value="teacher">教师</option>
+      </select>
       <div style="display:flex; gap:10px;">
         <button class="btn primary" id="loginBtn">登录</button>
         <button class="btn" id="registerBtn">注册</button>
@@ -436,6 +441,10 @@
           <button class="tab-btn" data-diff="CET4">CET-4</button>
           <button class="tab-btn" data-diff="CET6">CET-6</button>
           <button class="tab-btn" data-diff="kaoyan">考研</button>
+	          <button class="tab-btn" data-diff="MS">MS</button>
+	          <button class="tab-btn" data-diff="HS">HS</button>
+	          <button class="tab-btn" data-diff="TOEFL">TOEFL</button>
+	          <button class="tab-btn" data-diff="IELTS">IELTS</button>
         </div>
       </div>
       <div id="challengeDurArea" style="display:none; margin-bottom:10px;">
@@ -482,6 +491,17 @@
         <span style="color:var(--accent);font-weight:600;">个人主页</span>
       </div>
       <div id="fullProfileContent" style="flex:1;overflow-y:auto;padding:16px;"></div>
+    </div>
+  </div>
+
+
+  <!-- 通知列表弹窗 -->
+  <div id="notifModal" class="modal-overlay" style="display:none;">
+    <div class="modal-card" style="max-width:450px;">
+      <button class="btn" id="notifClose" style="position:absolute;top:14px;left:14px;padding:6px 14px;font-size:0.85rem;z-index:10;">← 返回</button>
+      <h4 style="margin-left:60px;">通知 <span id="notifUnreadBadge" style="font-size:0.75rem;color:var(--accent);"></span></h4>
+      <button class="btn" id="notifReadAllBtn" style="padding:4px 12px;font-size:0.8rem;position:absolute;top:14px;right:14px;">全部已读</button>
+      <div id="notifList" style="max-height:50vh;overflow-y:auto;"></div>
     </div>
   </div>
 
@@ -628,6 +648,10 @@
           <label style="font-size:0.85rem; display:flex; align-items:center; gap:4px; cursor:pointer;"><input type="checkbox" value="CET4"> CET-4</label>
           <label style="font-size:0.85rem; display:flex; align-items:center; gap:4px; cursor:pointer;"><input type="checkbox" value="CET6"> CET-6</label>
           <label style="font-size:0.85rem; display:flex; align-items:center; gap:4px; cursor:pointer;"><input type="checkbox" value="kaoyan"> 考研</label>
+          <label style="font-size:0.85rem;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" value="MS"> MS</label>
+          <label style="font-size:0.85rem;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" value="HS"> HS</label>
+          <label style="font-size:0.85rem;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" value="TOEFL"> TOEFL</label>
+          <label style="font-size:0.85rem;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" value="IELTS"> IELTS</label>
         </div>
         <div id="wbAddStatus" style="font-size:0.85rem; margin-top:6px;"></div>
       </div>
@@ -831,6 +855,86 @@
     </div>
   </div>
 
+
+  <!-- 加入班级弹窗 -->
+  <div id="joinClassModal" class="modal-overlay" style="display:none;">
+    <div class="modal-card" style="max-width:400px;">
+      <button class="btn" id="joinClassClose" style="position:absolute;top:14px;left:14px;padding:6px 14px;font-size:0.85rem;z-index:10;">← 返回</button>
+      <h4 style="margin-left:60px;">加入班级</h4>
+      <div class="field"><label>班级码</label>
+        <input type="text" id="classCodeInput" placeholder="输入老师给你的8位班级码" style="text-transform:uppercase;letter-spacing:2px;">
+      </div>
+      <button class="btn primary w-full" id="joinClassSubmitBtn">加入</button>
+      <div id="joinClassStatus" style="font-size:0.85rem;margin-top:8px;text-align:center;"></div>
+    </div>
+  </div>
+
+  <!-- 我的班级列表页（全屏） -->
+  <div id="myClassesModal" class="modal-overlay" style="display:none;">
+    <div style="width:100vw;height:100vh;background:var(--bg-start);display:flex;flex-direction:column;">
+      <div style="display:flex;align-items:center;gap:12px;padding:10px 16px;background:var(--card-bg);border-bottom:1px solid var(--input-border);flex-shrink:0;">
+        <button class="btn" id="myClassesClose" style="padding:6px 14px;font-size:0.85rem;">← 返回</button>
+        <span style="color:var(--accent);font-weight:600;">我的班级</span>
+      </div>
+      <div id="myClassesContent" style="flex:1;overflow-y:auto;padding:16px;"></div>
+    </div>
+  </div>
+
+
+  <!-- 创建任务弹窗 -->
+  <div id="createTaskModal" class="modal-overlay" style="display:none;">
+    <div class="modal-card" style="max-width:450px;">
+      <button class="btn" id="createTaskClose" style="position:absolute;top:14px;left:14px;padding:6px 14px;font-size:0.85rem;z-index:10;">← 返回</button>
+      <h4 style="margin-left:60px;">发布任务</h4>
+      <div class="field"><label>任务名称</label><input type="text" id="taskTitle" placeholder="如：L1 基础训练"></div>
+      <div class="field"><label>难度</label>
+        <select id="taskDifficulty">
+          <option value="L1">L1</option><option value="L2">L2</option><option value="L3">L3</option>
+          <option value="L4">L4</option><option value="L5">L5</option><option value="L6">L6</option>
+          <option value="CET4">CET-4</option><option value="CET6">CET-6</option><option value="kaoyan">考研</option>
+          <option value="MS">MS</option><option value="HS">HS</option><option value="TOEFL">TOEFL</option><option value="IELTS">IELTS</option>
+        </select>
+      </div>
+      <div class="field"><label>单词数量</label><input type="number" id="taskWordCount" value="10" min="1" max="50"></div>
+      <div class="field"><label>质量要求（每题最低分）</label><input type="number" id="taskQuality" value="80" min="0" max="100"></div>
+      <button class="btn primary w-full" id="createTaskSubmitBtn">发布</button>
+      <div id="createTaskStatus" style="font-size:0.85rem;margin-top:8px;text-align:center;"></div>
+    </div>
+  </div>
+
+  <!-- 发布公告弹窗 -->
+  <div id="announcementModal" class="modal-overlay" style="display:none;">
+    <div class="modal-card" style="max-width:450px;">
+      <button class="btn" id="announcementClose" style="position:absolute;top:14px;left:14px;padding:6px 14px;font-size:0.85rem;z-index:10;">← 返回</button>
+      <h4 style="margin-left:60px;">发布公告</h4>
+      <textarea id="announcementContent" placeholder="输入公告内容..." style="min-height:150px;width:100%;padding:14px;background:var(--input-bg);border:1px solid var(--input-border);border-radius:12px;color:var(--text-primary);font-size:0.95rem;outline:none;"></textarea>
+      <button class="btn primary w-full mt-8" id="announcementSubmitBtn">发布</button>
+      <div id="announcementStatus" style="font-size:0.85rem;margin-top:8px;text-align:center;"></div>
+    </div>
+  </div>
+
+  <!-- 班级主页（全屏） -->
+  <div id="classHomeModal" class="modal-overlay" style="display:none;">
+    <div style="width:100vw;height:100vh;background:var(--bg-start);display:flex;flex-direction:column;">
+      <div style="display:flex;align-items:center;gap:12px;padding:10px 16px;background:var(--card-bg);border-bottom:1px solid var(--input-border);flex-shrink:0;">
+        <button class="btn" id="classHomeClose" style="padding:6px 14px;font-size:0.85rem;">← 返回</button>
+        <span id="classHomeTitle" style="color:var(--accent);font-weight:600;">班级</span>
+      </div>
+      <div style="display:flex;gap:4px;padding:8px 16px;background:var(--card-bg);border-bottom:1px solid var(--input-border);flex-shrink:0;">
+        <button class="tab-btn active class-home-tab" data-tab="leaderboard">排行榜</button>
+        <button class="tab-btn class-home-tab" data-tab="tasks">任务</button>
+        <button class="tab-btn class-home-tab" data-tab="members">成员</button>
+        <button class="tab-btn class-home-tab" data-tab="announcements">公告</button>
+      </div>
+      <div id="classHomeContent" style="flex:1;overflow-y:auto;padding:16px;">
+        <div id="classLeaderboardArea"></div>
+        <div id="classTasksArea" style="display:none;"></div>
+        <div id="classMembersArea" style="display:none;"></div>
+        <div id="classAnnouncementsArea" style="display:none;"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- AI 工具二级菜单 -->
   <div id="aiToolsModal" class="modal-overlay" style="display:none;">
     <div class="modal-card" style="max-width:360px;">
@@ -842,88 +946,102 @@
   </div>
 
   <!-- 设置抽屉 -->
-  <div class="drawer" id="settingsDrawer">
-    <button class="drawer-close-btn" id="drawerCloseBtn">X</button>
-    <h3>设置</h3>
-    <div class="settings-section">
-      <h4>外观</h4>
-      <div class="field"><label>主题</label>
-        <select id="themeSelect">
-          <option value="pink-dark">粉马卡龙(深)</option>
-          <option value="pink-light">粉马卡龙(浅)</option>
-          <option value="blue-dark">蓝马卡龙(深)</option>
-          <option value="blue-light">蓝马卡龙(浅)</option>
-        </select>
-      </div>
+  <div id="settingsDrawer" style="position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg-start);z-index:200;display:none;flex-direction:column;overflow-y:auto;">
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 16px;background:var(--card-bg);border-bottom:1px solid var(--input-border);position:sticky;top:0;z-index:10;">
+      <button class="btn" id="drawerCloseBtn" style="padding:6px 14px;font-size:0.85rem;">← 返回</button>
+      <span style="font-size:1.1rem;font-weight:600;color:var(--text-primary);">设置</span>
     </div>
-    <div class="settings-section">
-      <h4>AI 服务</h4>
-      <div class="field"><label>API 平台</label>
-        <select id="apiPlatformSelect">
-          <option value="deepseek">DeepSeek</option>
-          <option value="qwen">通义千问 (Qwen)</option>
-          <option value="glm">智谱 (GLM)</option>
-          <option value="moonshot">月之暗面 (Moonshot)</option>
-          <option value="yi">零一万物 (Yi)</option>
-          <option value="siliconflow">SiliconFlow</option>
-          <option value="custom">自定义地址</option>
-        </select>
+    <div style="padding:16px;max-width:800px;margin:0 auto;width:100%;">
+      <!-- 外观 -->
+      <div style="background:var(--card-bg);border:1px solid var(--input-border);border-radius:16px;padding:16px;margin-bottom:14px;">
+        <div style="font-size:1rem;font-weight:600;color:var(--text-primary);margin-bottom:12px;">外观</div>
+        <div class="field"><label>主题</label>
+          <select id="themeSelect">
+            <option value="pink-dark">粉马卡龙(深)</option>
+            <option value="pink-light">粉马卡龙(浅)</option>
+            <option value="blue-dark">蓝马卡龙(深)</option>
+            <option value="blue-light">蓝马卡龙(浅)</option>
+          </select>
+        </div>
       </div>
-      <div class="field" id="customUrlField" style="display:none;"><label>自定义 API 地址</label>
-        <input type="text" id="customApiUrl" placeholder="https://your-api.com/v1/chat/completions">
+      <!-- 学习 -->
+      <div style="background:var(--card-bg);border:1px solid var(--input-border);border-radius:16px;padding:16px;margin-bottom:14px;">
+        <div style="font-size:1rem;font-weight:600;color:var(--text-primary);margin-bottom:12px;">学习</div>
+        <div class="field" style="flex-direction:row;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <label style="margin:0;cursor:pointer;">翻译计时器</label>
+          <label class="switch-track" id="timerToggleTrack" style="position:relative;width:44px;height:24px;">
+            <input type="checkbox" id="timerToggle">
+            <span class="switch-knob" style="width:17px;height:17px;top:2.5px;left:2.5px;"></span>
+          </label>
+        </div>
+        <div class="text-secondary" style="font-size:0.8rem;margin-bottom:10px;">从显示中文句子开始计时</div>
+        <button class="btn w-full mt-8" id="changeDifficultyBtn">切换难度</button>
+        <button class="btn w-full mt-8" id="openMemorizedBtn">管理已背单词</button>
+        <button class="btn w-full mt-8" id="openFavoritesBtn">查看收藏单词</button>
+        <button class="btn w-full mt-8" id="examBtn">等级考试</button>
+        <button class="btn w-full mt-8" id="examHistoryBtn">考试记录</button>
+        <button class="btn w-full mt-8" id="wrongQBtn">错题本</button>
       </div>
-      <div class="field"><label>模型</label>
-        <select id="settingsModelSelect">
-          <option value="deepseek-chat">deepseek-chat</option>
-        </select>
-        <input type="text" id="settingsModelCustom" placeholder="输入自定义模型名称" style="display:none; margin-top:6px;">
+      <!-- AI 服务 -->
+      <div style="background:var(--card-bg);border:1px solid var(--input-border);border-radius:16px;padding:16px;margin-bottom:14px;">
+        <div style="font-size:1rem;font-weight:600;color:var(--text-primary);margin-bottom:12px;">AI 服务</div>
+        <button class="btn w-full" id="aiToolsBtn">AI 工具</button>
+        <button class="btn w-full mt-8" id="smartTranslateBtn2">智能翻译</button>
+        <div class="field" style="margin-top:12px;"><label>API 平台</label>
+          <select id="apiPlatformSelect">
+            <option value="deepseek">DeepSeek</option>
+            <option value="qwen">通义千问 (Qwen)</option>
+            <option value="glm">智谱 (GLM)</option>
+            <option value="moonshot">月之暗面 (Moonshot)</option>
+            <option value="yi">零一万物 (Yi)</option>
+            <option value="siliconflow">SiliconFlow</option>
+            <option value="custom">自定义地址</option>
+          </select>
+        </div>
+        <div class="field" id="customUrlField" style="display:none;"><label>自定义 API 地址</label>
+          <input type="text" id="customApiUrl" placeholder="https://your-api.com/v1/chat/completions">
+        </div>
+        <div class="field"><label>模型</label>
+          <select id="settingsModelSelect"><option value="deepseek-chat">deepseek-chat</option></select>
+          <input type="text" id="settingsModelCustom" placeholder="输入自定义模型名称" style="display:none;margin-top:6px;">
+        </div>
+        <div class="field"><label>API Key</label>
+          <input type="password" id="settingsApiKey" placeholder="sk-...">
+        </div>
+        <button class="btn primary w-full" id="saveApiSettingsBtn">保存 API 设置</button>
+        <div id="apiSettingsStatus" style="font-size:0.85rem;color:var(--accent);margin-top:8px;text-align:center;"></div>
+        <div class="field" style="flex-direction:row;align-items:center;justify-content:space-between;margin-top:12px;">
+          <label style="margin:0;cursor:pointer;">不参与考试排行</label>
+          <label class="switch-track" id="examOptOutTrack" style="position:relative;width:44px;height:24px;">
+            <input type="checkbox" id="examOptOutCheckbox">
+            <span class="switch-knob" style="width:17px;height:17px;top:2.5px;left:2.5px;"></span>
+          </label>
+        </div>
       </div>
-      <div class="field"><label>API Key</label>
-        <input type="password" id="settingsApiKey" placeholder="sk-...">
+      <!-- 数据排行 -->
+      <div style="background:var(--card-bg);border:1px solid var(--input-border);border-radius:16px;padding:16px;margin-bottom:14px;">
+        <div style="font-size:1rem;font-weight:600;color:var(--text-primary);margin-bottom:12px;">数据排行</div>
+        <button class="btn w-full" id="showHistoryBtn">练习历史</button>
+        <button class="btn w-full mt-8" id="showLeaderboardBtn">排行榜</button>
       </div>
-      <button class="btn primary w-full" id="saveApiSettingsBtn">保存 API 设置</button>
-      <div id="apiSettingsStatus" style="font-size:0.85rem; color:var(--accent); margin-top:8px; text-align:center;"></div>
-    </div>
-    <div class="settings-section">
-      <h4>功能</h4>
-      <div class="field" style="flex-direction:row; align-items:center; justify-content:space-between; margin-bottom:8px;">
-        <label style="margin:0; cursor:pointer;">不参与考试排行</label>
-        <label class="switch-track" id="examOptOutTrack" style="position:relative; width:44px; height:24px;">
-          <input type="checkbox" id="examOptOutCheckbox">
-          <span class="switch-knob" style="width:17px;height:17px;top:2.5px;left:2.5px;"></span>
-        </label>
+      <!-- 班级 -->
+      <div id="classSection" style="background:var(--card-bg);border:1px solid var(--input-border);border-radius:16px;padding:16px;margin-bottom:14px;">
+        <div style="font-size:1rem;font-weight:600;color:var(--text-primary);margin-bottom:12px;">班级</div>
+        <button class="btn w-full" id="joinClassBtn">加入班级</button>
+        <button class="btn w-full mt-8" id="myClassesBtn">我的班级</button>
+        <button class="btn w-full mt-8" id="classLeaderboardBtn">班级排行</button>
+        <button class="btn w-full mt-8" id="createClassBtn" style="display:none;">创建班级</button>
       </div>
-      <div class="field" style="flex-direction:row; align-items:center; justify-content:space-between; margin-bottom:8px;">
-        <label style="margin:0; cursor:pointer;">翻译计时器</label>
-        <label class="switch-track" id="timerToggleTrack" style="position:relative; width:44px; height:24px;">
-          <input type="checkbox" id="timerToggle">
-          <span class="switch-knob" style="width:17px; height:17px; top:2.5px; left:2.5px;"></span>
-        </label>
+      <!-- 账户 -->
+      <div style="background:var(--card-bg);border:1px solid var(--input-border);border-radius:16px;padding:16px;margin-bottom:14px;">
+        <div style="font-size:1rem;font-weight:600;color:var(--text-primary);margin-bottom:12px;">账户</div>
+        <button class="btn w-full" id="profileBtn">个人资料</button>
+        <button class="btn w-full mt-8" id="changePasswordBtn">修改密码</button>
+        <button class="btn w-full mt-8" id="loginHistoryBtn">登录记录</button>
+        <div id="adminButtons" style="margin-top:10px;display:none;"></div>
+        <button class="btn w-full mt-8" id="logoutBtn">退出登录</button>
+        <div id="backupStatus" style="font-size:0.8rem;color:var(--text-secondary);margin-top:6px;text-align:center;"></div>
       </div>
-      <div class="text-secondary" style="font-size:0.8rem; margin-bottom:8px;">从显示中文句子开始计时</div>
-      <button class="btn w-full" id="aiToolsBtn">AI 工具</button>
-      <button class="btn w-full mt-8" id="examBtn">等级考试</button>
-      <button class="btn w-full mt-8" id="examHistoryBtn">考试记录</button>
-      <button class="btn w-full mt-8" id="wrongQBtn">错题本</button>
-      <button class="btn w-full mt-8" id="changeDifficultyBtn">切换难度</button>
-    </div>
-    <div class="settings-section">
-      <h4>数据</h4>
-      <button class="btn primary w-full" id="openMemorizedBtn">管理已背单词</button>
-      <button class="btn w-full mt-8" id="openFavoritesBtn">查看收藏单词</button>
-      <button class="btn w-full mt-8" id="showHistoryBtn">练习历史</button>
-    </div>
-    <div class="settings-section">
-      <h4>账户</h4>
-      <button class="btn w-full" id="profileBtn">个人资料</button>
-      <button class="btn w-full mt-8" id="changePasswordBtn">修改密码</button>
-      <button class="btn w-full mt-8" id="loginHistoryBtn">登录记录</button>
-      <button class="btn w-full mt-8" id="showLeaderboardBtn">排行榜</button>
-    </div>
-    <div class="settings-section">
-      <div id="adminButtons" style="display:none;"></div>
-      <button class="btn w-full mt-8" id="logoutBtn">退出登录</button>
-      <div id="backupStatus" style="font-size:0.8rem; color:var(--text-secondary); margin-top:6px; text-align:center;"></div>
     </div>
   </div>
   <div class="gear-btn" id="gearBtn" style="display:none;">设置</div>
@@ -1049,7 +1167,8 @@
       if (!resp.ok) return alert(data.error);
       jwtToken = data.token; localStorage.setItem('jwt_token', jwtToken);
       // 保存当前用户名，用于切换账号时隔离数据
-      localStorage.setItem('current_username', data.username); // 用于按用户名隔离数据
+      localStorage.setItem('current_username', data.username);
+      localStorage.setItem('user_role', data.role || 'student');
       if (data.username === 'Aaa') addAdminButtons();
       $('topBar').style.display = 'flex'; $('gearBtn').style.display = 'flex';
       $('authPanel').style.display = 'none'; $('diffPanel').style.display = 'flex';
@@ -1059,9 +1178,10 @@
       if (!username || !password) return alert('请输入用户名和密码');
       const err = validateUsername(username); if (err) return alert(err);
       if (password.length < 4) return alert('密码至少 4 个字符');
+      const role = $('authRole').value;
       const resp = await fetch(`${BACKEND_URL}/api/v1/auth/register`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
+        body: JSON.stringify({ username, password, role })
       });
       const data = await resp.json();
       if (!resp.ok) return alert(data.error);
@@ -1138,7 +1258,7 @@
     });
 
     // 难度选择
-    const DIFF_NAMES = {L1:'基础生存',L2:'通用信息',L3:'专业技术',L4:'学术论述',L5:'文学艺术',L6:'文化创译',CET4:'四级标准',CET6:'六级标准',kaoyan:'考研标准'};
+    const DIFF_NAMES = {L1:'基础生存',L2:'通用信息',L3:'专业技术',L4:'学术论述',L5:'文学艺术',L6:'文化创译',CET4:'四级标准',CET6:'六级标准',kaoyan:'考研标准',MS:'初中',HS:'高中',TOEFL:'托福',IELTS:'雅思'};
     const DIFF_DESCS = {L1:'日常简单对话、标识标牌、菜单、基础邮件。句式简单，时态单一，语义直白。',L2:'新闻简讯、旅游指南、通识类科普文章、非正式商务信函。涉及中长句，常用固定搭配。',L3:'法律合同、医学报告、IT技术文档、金融研报。术语密度极高，句式程式化，容错率低。',L4:'学术论文、哲学/社会学专著、深度社论、政策白皮书。逻辑嵌套深，涉及抽象概念。',L5:'经典小说、散文、诗歌、戏剧剧本。大量修辞手法、双关、押韵，极具个人风格。',L6:'品牌Slogan、广告Campaign、影视台词、古诗词典籍。需文化背景理解，文字凝练。',CET4:'大学英语四级大纲词汇，约4500词，适用于中级英语学习者。',CET6:'大学英语六级大纲词汇，约6000词，适用于中高级英语学习者。',kaoyan:'考研英语大纲词汇，约5500词，侧重学术词汇和长难句分析。'};
 
     // 各平台常用模型列表
@@ -1836,7 +1956,7 @@
     }
 
     // 设置抽屉
-    $('drawerCloseBtn').addEventListener('click', () => $('settingsDrawer').classList.remove('open'));
+    $('drawerCloseBtn').addEventListener('click', () => $('settingsDrawer').style.display = 'none');
     let memorizedReturnTo = ''; // 跟踪二级菜单返回目标
     $('openMemorizedBtn').addEventListener('click', () => {
       $('memorizedSearch').value = '';
@@ -2634,7 +2754,7 @@
     });
 
     // 设置齿轮按钮
-    $('gearBtn').addEventListener('click', () => { $('settingsDrawer').classList.add('open'); loadApiSettingsUI(); });
+    $('gearBtn').addEventListener('click', () => { $('settingsDrawer').style.display = 'flex'; loadApiSettingsUI(); });
     // 计时器开关
     $('timerToggle').checked = timerEnabled;
     if (timerEnabled) $('timerToggleTrack').classList.add('on');
@@ -2713,6 +2833,231 @@
       try { await fetch(BACKEND_URL+'/api/v1/user/profile', { method:'PUT', headers: authHeaders(), body: JSON.stringify({ display_name: localStorage.getItem('current_username'), tagline, status: st }) }); } catch(e) { console.error("保存资料失败:", e); }
       alert('已保存');
     });
+
+    // ==== 班级功能 ====
+    $('joinClassBtn').addEventListener('click', () => {
+      $('settingsDrawer').style.display = 'none';
+      $('joinClassModal').style.display = 'flex';
+      $('classCodeInput').value = '';
+      $('joinClassStatus').textContent = '';
+    });
+    $('joinClassClose').addEventListener('click', () => $('joinClassModal').style.display = 'none');
+    $('joinClassSubmitBtn').addEventListener('click', async () => {
+      const code = $('classCodeInput').value.trim().toUpperCase();
+      if (!code) { $('joinClassStatus').textContent = '请输入班级码'; return; }
+      $('joinClassSubmitBtn').disabled = true;
+      $('joinClassStatus').textContent = '加入中...';
+      try {
+        const resp = await fetch(BACKEND_URL+'/api/v1/class/join', { method:'POST', headers: authHeaders(), body: JSON.stringify({ code }) });
+        const data = await resp.json();
+        if (data.error) { $('joinClassStatus').textContent = data.error; $('joinClassSubmitBtn').disabled = false; return; }
+        $('joinClassStatus').textContent = '加入成功！';
+        setTimeout(() => { $('joinClassModal').style.display = 'none'; $('joinClassSubmitBtn').disabled = false; }, 1000);
+      } catch(e) { $('joinClassStatus').textContent = '加入失败'; $('joinClassSubmitBtn').disabled = false; }
+    });
+    $('myClassesBtn').addEventListener('click', () => {
+      $('settingsDrawer').style.display = 'none';
+      loadMyClasses();
+    });
+    $('myClassesClose').addEventListener('click', () => $('myClassesModal').style.display = 'none');
+    async function loadMyClasses() {
+      $('myClassesModal').style.display = 'flex';
+      $('myClassesContent').innerHTML = '<div class="loader"></div>';
+      try {
+        const resp = await fetch(BACKEND_URL+'/api/v1/class/list', { headers: authHeaders() });
+        const data = await resp.json();
+        if (!data.length) {
+          $('myClassesContent').innerHTML = '<div class="empty-state">暂无班级。'+(localStorage.getItem('user_role')==='teacher'?'去创建班级吧':'输入班级码加入一个班级')+'</div>';
+          return;
+        }
+        const isTeacher = localStorage.getItem('user_role') === 'teacher';
+        $('myClassesContent').innerHTML = data.map(c =>
+          '<div style="background:var(--card-bg);border:1px solid var(--input-border);border-radius:16px;padding:16px;margin-bottom:10px;cursor:pointer;" onclick="openClassHome('+c.id+')">'+
+            '<div style="font-size:1.1rem;font-weight:600;color:var(--text-primary);">'+c.name+'</div>'+
+            (c.school ? '<div style="font-size:0.85rem;color:var(--text-secondary);margin-top:4px;">'+c.school+'</div>' : '')+
+            (isTeacher ? '<div style="font-size:0.85rem;color:var(--accent);margin-top:4px;">班级码: '+c.class_code+'</div>' : '<div style="font-size:0.85rem;color:var(--text-secondary);margin-top:4px;">'+(c.teacher_name||'')+'</div>')+
+          '</div>'
+        ).join('');
+      } catch(e) { $('myClassesContent').innerHTML = '<div class="error-text">加载失败</div>'; }
+    }
+    $('classHomeClose').addEventListener('click', () => $('classHomeModal').style.display = 'none');
+    window.openClassHome = async (classId) => {
+      $('classHomeModal').style.display = 'flex';
+      $('classHomeTitle').textContent = '班级';
+      try {
+        const resp = await fetch(BACKEND_URL+'/api/v1/class/'+classId+'/detail', { headers: authHeaders() });
+        const cls = await resp.json();
+        if (cls.error) throw new Error(cls.error);
+        $('classHomeTitle').textContent = cls.name + (cls.school ? ' · '+cls.school : '');
+        loadClassLeaderboard(classId);
+        loadClassTasks(classId);
+        loadClassMembers(classId);
+        loadClassAnnouncements(classId);
+      } catch(e) { $('classHomeContent').innerHTML = '<div class="error-text">加载失败</div>'; }
+    };
+    document.querySelectorAll('.class-home-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.class-home-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        ['leaderboard','tasks','members','announcements'].forEach(a => {
+          const el = a==='leaderboard'?'classLeaderboardArea':a==='tasks'?'classTasksArea':a==='members'?'classMembersArea':'classAnnouncementsArea';
+          $(el).style.display = tab.dataset.tab === a ? 'block' : 'none';
+        });
+      });
+    });
+    async function loadClassLeaderboard(classId) {
+      try {
+        const resp = await fetch(BACKEND_URL+'/api/v1/class/'+classId+'/leaderboard', { headers: authHeaders() });
+        const data = await resp.json();
+        if (!data.length) { $('classLeaderboardArea').innerHTML = '<div class="empty-state">暂无数据</div>'; return; }
+        $('classLeaderboardArea').innerHTML = data.map((m,i) =>
+          '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid var(--input-border);">'+
+            '<span style="color:var(--accent);font-weight:600;min-width:24px;">'+(i+1)+'</span>'+
+            '<span style="flex:1;color:var(--text-primary);">'+(m.display_name||m.username)+'</span>'+
+            '<span style="color:var(--text-secondary);font-size:0.9rem;">'+m.high_quality_count+'个</span>'+
+          '</div>'
+        ).join('');
+      } catch(e) { $('classLeaderboardArea').innerHTML = '<div class="error-text">加载失败</div>'; }
+    }
+    async function loadClassTasks(classId) {
+      try {
+        const resp = await fetch(BACKEND_URL+'/api/v1/class/'+classId+'/tasks', { headers: authHeaders() });
+        const data = await resp.json();
+        if (!data.length) { $('classTasksArea').innerHTML = '<div class="empty-state">暂无任务</div>'; return; }
+        $('classTasksArea').innerHTML = data.map(t =>
+          '<div style="background:var(--card-bg);border:1px solid var(--input-border);border-radius:14px;padding:14px;margin-bottom:10px;">'+
+            '<div style="display:flex;justify-content:space-between;"><span style="font-weight:600;color:var(--text-primary);">'+t.title+'</span><span style="font-size:0.85rem;color:'+(t.status==='completed'?'var(--accent)':'var(--text-secondary)')+';">'+(t.status||'not_started')+'</span></div>'+
+            '<div style="font-size:0.85rem;color:var(--text-secondary);margin-top:4px;">'+t.difficulty+' · '+(t.completed_count||0)+'/'+(t.total_count||t.word_count)+'</div>'+
+          '</div>'
+        ).join('');
+      } catch(e) { $('classTasksArea').innerHTML = '<div class="error-text">加载失败</div>'; }
+    }
+    async function loadClassMembers(classId) {
+      try {
+        const resp = await fetch(BACKEND_URL+'/api/v1/class/'+classId+'/members', { headers: authHeaders() });
+        const data = await resp.json();
+        if (!data.length) { $('classMembersArea').innerHTML = '<div class="empty-state">暂无成员</div>'; return; }
+        $('classMembersArea').innerHTML = data.map(m =>
+          '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--input-border);">'+
+            '<span style="color:var(--text-primary);">'+(m.display_name||m.username)+'</span>'+
+            (m.school ? '<span style="font-size:0.85rem;color:var(--text-secondary);">'+m.school+'</span>' : '')+
+          '</div>'
+        ).join('');
+      } catch(e) { $('classMembersArea').innerHTML = '<div class="error-text">加载失败</div>'; }
+    }
+    async function loadClassAnnouncements(classId) {
+      try {
+        const resp = await fetch(BACKEND_URL+'/api/v1/class/'+classId+'/announcements', { headers: authHeaders() });
+        const data = await resp.json();
+        if (!data.length) { $('classAnnouncementsArea').innerHTML = '<div class="empty-state">暂无公告</div>'; return; }
+        $('classAnnouncementsArea').innerHTML = data.map(a =>
+          '<div style="padding:12px 0;border-bottom:1px solid var(--input-border);">'+
+            '<div style="font-size:0.85rem;color:var(--accent);">'+(a.teacher_name||'老师')+'</div>'+
+            '<div style="margin-top:4px;">'+a.content+'</div>'+
+            '<div style="font-size:0.8rem;color:var(--text-secondary);margin-top:4px;">'+new Date(a.created_at).toLocaleString()+'</div>'+
+          '</div>'
+        ).join('');
+      } catch(e) { $('classAnnouncementsArea').innerHTML = '<div class="error-text">加载失败</div>'; }
+    }
+    $('createTaskClose').addEventListener('click', () => $('createTaskModal').style.display = 'none');
+    $('createTaskSubmitBtn').addEventListener('click', async () => {
+      var title = $('taskTitle').value.trim();
+      var difficulty = $('taskDifficulty').value;
+      var wordCount = parseInt($('taskWordCount').value) || 10;
+      var qualityRequirement = parseInt($('taskQuality').value) || 80;
+      if (!title) { $('createTaskStatus').textContent = '请输入任务名称'; return; }
+      $('createTaskSubmitBtn').disabled = true;
+      $('createTaskStatus').textContent = '发布中...';
+      try {
+        var r = await fetch(BACKEND_URL+'/api/v1/class/task/create', { method:'POST', headers: authHeaders(), body: JSON.stringify({ classId: currentClassId, title, difficulty, wordCount, qualityRequirement }) });
+        var d = await r.json();
+        if (d.error) { $('createTaskStatus').textContent = d.error; $('createTaskSubmitBtn').disabled = false; return; }
+        $('createTaskStatus').textContent = '发布成功！';
+        $('createTaskModal').style.display = 'none';
+        if (currentClassId) loadClassTasks(currentClassId);
+      } catch(e) { $('createTaskStatus').textContent = '发布失败'; }
+      $('createTaskSubmitBtn').disabled = false;
+    });
+    $('announcementClose').addEventListener('click', () => $('announcementModal').style.display = 'none');
+    $('announcementSubmitBtn').addEventListener('click', async () => {
+      var content = $('announcementContent').value.trim();
+      if (!content) { $('announcementStatus').textContent = '请输入公告内容'; return; }
+      $('announcementSubmitBtn').disabled = true;
+      $('announcementStatus').textContent = '发布中...';
+      try {
+        var r = await fetch(BACKEND_URL+'/api/v1/class/announcement', { method:'POST', headers: authHeaders(), body: JSON.stringify({ classId: currentClassId, content }) });
+        var d = await r.json();
+        if (d.error) { $('announcementStatus').textContent = d.error; $('announcementSubmitBtn').disabled = false; return; }
+        $('announcementStatus').textContent = '发布成功！';
+        $('announcementModal').style.display = 'none';
+        if (currentClassId) loadClassAnnouncements(currentClassId);
+      } catch(e) { $('announcementStatus').textContent = '发布失败'; }
+      $('announcementSubmitBtn').disabled = false;
+    });
+    $('classLeaderboardBtn').addEventListener('click', () => {
+      $('settingsDrawer').style.display = 'none';
+      $('leaderboardModal').style.display = 'flex';
+      switchLeaderTab('exam');
+    });
+    $('createClassBtn').addEventListener('click', async () => {
+      $('settingsDrawer').style.display = 'none';
+      const name = prompt('请输入班级名称:');
+      if (!name) return;
+      const school = prompt('请输入学校名称（选填）:');
+      try {
+        const resp = await fetch(BACKEND_URL+'/api/v1/class/create', { method:'POST', headers: authHeaders(), body: JSON.stringify({ name, school }) });
+        const data = await resp.json();
+        if (data.error) return alert(data.error);
+        alert('班级创建成功！班级码: ' + data.class_code + '（24小时有效）');
+      } catch(e) { alert('创建失败'); }
+    });
+    const curRole = localStorage.getItem('user_role');
+    if (curRole === 'teacher') $('createClassBtn').style.display = 'flex';
+
+    // ==== 通知系统 ====
+    $('notifBell').addEventListener('click', () => {
+      $('notifModal').style.display = 'flex';
+      loadNotifications();
+    });
+    $('notifClose').addEventListener('click', () => $('notifModal').style.display = 'none');
+    $('notifReadAllBtn').addEventListener('click', async () => {
+      try { await fetch(BACKEND_URL+'/api/v1/notifications/read-all', { method:'PUT', headers: authHeaders() }); loadNotifications(); } catch(e) {}
+    });
+    async function loadNotifications() {
+      $('notifList').innerHTML = '<div class="empty-state">加载中...</div>';
+      try {
+        const resp = await fetch(BACKEND_URL+'/api/v1/notifications', { headers: authHeaders() });
+        const data = await resp.json();
+        $('notifUnreadBadge').textContent = data.unread > 0 ? '('+data.unread+'条未读)' : '';
+        if (!data.notifications || !data.notifications.length) { $('notifList').innerHTML = '<div class="empty-state">暂无通知</div>'; return; }
+        $('notifList').innerHTML = data.notifications.map(n =>
+          '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--input-border);'+(n.is_read?'':'background:var(--accent-light);border-radius:8px;padding:10px;')+'">'+
+            '<div style="flex:1;"><div style="font-size:0.9rem;'+(n.is_read?'':'font-weight:600;')+'">'+n.content+'</div><div style="font-size:0.75rem;color:var(--text-secondary);margin-top:2px;">'+new Date(n.created_at).toLocaleString()+'</div></div>'+
+            (!n.is_read ? '<button class="small-btn" data-notif-id="'+n.id+'" style="margin-left:8px;">已读</button>' : '')+
+          '</div>'
+        ).join('');
+        $('notifList').querySelectorAll('[data-notif-id]').forEach(b => {
+          b.addEventListener('click', async (e) => {
+            try { await fetch(BACKEND_URL+'/api/v1/notifications/read/'+e.target.dataset.notifId, { method:'PUT', headers: authHeaders() }); loadNotifications(); } catch(e2) {}
+          });
+        });
+        updateNotifBadge(data.unread);
+      } catch(e) { $('notifList').innerHTML = '<div class="error-text">加载失败</div>'; }
+    }
+    async function updateNotifBadge(count) {
+      const badge = $('notifBadge');
+      if (!badge) return;
+      if (count > 0) { badge.textContent = count > 99 ? '99+' : count; badge.style.display = 'inline'; }
+      else { badge.style.display = 'none'; }
+    }
+    setInterval(async () => {
+      if (!jwtToken || $('notifModal').style.display === 'flex') return;
+      try {
+        const resp = await fetch(BACKEND_URL+'/api/v1/notifications', { headers: authHeaders() });
+        const data = await resp.json();
+        updateNotifBadge(data.unread);
+      } catch(e) {}
+    }, 60000);
 
     // 将 native select 替换为自定义下拉框
     enhanceSelect('setupPlatformSelect');
