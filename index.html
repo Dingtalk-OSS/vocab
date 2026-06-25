@@ -1216,6 +1216,8 @@
       localStorage.setItem('user_role', data.role || 'student');
       if (data.username === 'Aaa') addAdminButtons();
       updateRoleBadge();
+      var loginRole = localStorage.getItem('user_role');
+      if (loginRole === 'teacher') { document.getElementById('createClassBtn').style.display = 'flex'; document.getElementById('joinClassBtn').style.display = 'none'; }
       $('topBar').style.display = 'flex'; $('gearBtn').style.display = 'flex';
       $('authPanel').style.display = 'none'; $('diffPanel').style.display = 'flex';
     });
@@ -1651,12 +1653,16 @@
 
     
     function updateRoleBadge() {
+      var uname = localStorage.getItem('current_username');
       var role = localStorage.getItem('user_role')||'';
-      var badge = document.getElementById('roleBadge');
-      if(!badge)return;
       var labels={teacher:'教师',student:'学生'};
-      if(role&&labels[role]){badge.textContent=labels[role];badge.style.display='inline';}
-      else{badge.style.display='none';}
+      var label = '个人';
+      if(uname === 'Aaa') label='个人';
+      else label = labels[role] || '个人';
+      var badge = document.getElementById('roleBadge');
+      if(badge){badge.textContent=label;badge.style.display='inline';}
+      var sb = document.querySelector('.user-role-badge');
+      if(sb) sb.textContent=label;
     }
     function updateStats() {
       const avg = scores.length ? (scores.reduce((a,b)=>a+b,0)/scores.length).toFixed(1) : '--';
@@ -2342,7 +2348,7 @@
     let currentEssayTopic = '';
     $('essayGradeBtn2').addEventListener('click', () => { $('aiToolsModal').style.display = 'none'; $('essayModal').style.display = 'flex'; $('essayTopicDisplay').style.display = 'none'; currentEssayTopic = ''; });
     $('essayBack').addEventListener('click', () => $('essayModal').style.display = 'none');
-    (typeof $('essayClose')?.addEventListener === 'function') && $('essayClose').addEventListener('click', () => $('essayModal').style.display = 'none');
+    // essayClose replaced by essayBack (back button above)
     $('essayGenerateTopicBtn').addEventListener('click', async () => {
       const type = $('essayType').value;
       $('essayGenerateTopicBtn').disabled = true; $('essayGenerateTopicBtn').textContent = '生成中...';
