@@ -1272,6 +1272,205 @@ app.post('/api/v1/user/restore-data', (req, res) => {
 
 
 // 智能翻译
+
+// ==== 班级系统 ====
+app.post('/api/v1/class/create', (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const user = db.prepare('SELECT role, school FROM users WHERE id = ?').get(userId);
+    if (user.role !== 'teacher') return res.status(403).json({ error: '仅教师可创建班级' });
+    const name = req.body.name, school = req.body.school || user.school || '';
+    if (!name) return res.status(400).json({ error: '请填写班级名称' });
+    var cc = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789', classCode = '';
+    for (var i = 0; i < 8; i++) classCode += cc[Math.floor(Math.random() * cc.length)];
+    const expiresAt = new Date(Date.now() + 86400000).toISOString();
+    const r2 = db.prepare('INSERT INTO classes (teacher_id, name, school, class_code, code_expires_at) VALUES (?,?,?,?,?)').run(userId, name, school, classCode, expiresAt);
+    res.json({ id: r2.lastInsertRowid, name: name, class_code: classCode, code_expires_at: expiresAt });
+  } catch(e) { if (e.message === '未登录') return res.status(401).json({error:e.message}); res.status(500).json({error:e.message}); }
+});
+
+app.post('/api/v1/class/join', (req, res) => {
+  try {
+    const userId = getUserId(req), code = (req.body.code||'').toUpperCase();
+    if (!code) return res.status(400).json({ error: '请输入班级码' });
+    const cls = db.prepare('SELECT * FROM classes WHERE class_code = ?').get(code);
+    if (!cls) return res.status(404).json({ error: '班级码无效' });
+    if (!cls.active) return res.status(400).json({ error: '班级已解散' });
+    if (new Date(cls.code_expires_at) < new Date()) return res.status(400).json({ error: '班级码已过期' });
+    var existing = db.prepare('SELECT id FROM class_members WHERE class_id=? AND student_id=?').get(cls.id, userId);
+    if (existing) return res.status(400).json({ error: '已在班级中' });
+    db.prepare('INSERT INTO class_members (class_id, student_id) VALUES (?,?)').run(cls.id, userId);
+    if (cls.school) { try { db.prepare('UPDATE users SET school=? WHERE id=?').run(cls.school, userId); } catch(e2) {} }
+    res.json({ id: cls.id, name: cls.name, school: cls.school });
+  } catch(e) { if (e.message === '未登录') return res.status(401).json({error:e.message}); res.status(500).json({error:e.message}); }
+});
+
+app.get('/api/v1/class/list', (req, res) => {
+  try {
+    const userId = getUserId(req), user = db.prepare('SELECT role FROM users WHERE id=?').get(userId);
+    var rows;
+    if (user.role === 'teacher') rows = db.prepare('SELECT id,name,school,class_code,code_expires_at FROM classes WHERE teacher_id=? AND active=1 ORDER BY created_at DESC').all(userId);
+    else rows = db.prepare("SELECT c.id,c.name,c.school,c.teacher_id,u.username as teacher_name,cm.joined_at FROM class_members cm JOIN classes c ON cm.class_id=c.id JOIN users u ON c.teacher_id=u.id WHERE cm.student_id=? AND c.active=1 ORDER BY cm.joined_at DESC").all(userId);
+    res.json(rows);
+  } catch(e) { if (e.message === '未登录') return res.status(401).json({error:e.message}); res.status(500).json({error:e.message}); }
+});
+
+app.get('/api/v1/class/:id/detail', (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const cls = db.prepare('SELECT c.*,u.username as teacher_name,u.teacher_api_key_shared FROM classes c JOIN users u ON c.teacher_id=u.id WHERE c.id=?').get(req.params.id);
+    if (!cls) return res.status(404).json({error:'班级不存在'});
+    const mc = db.prepare('SELECT COUNT(*) as c FROM class_members WHERE class_id=?').get(cls.id).c;
+    const isM = db.prepare('SELECT id FROM class_members WHERE class_id=? AND student_id=?').get(cls.id, userId);
+    const role = db.prepare('SELECT role FROM users WHERE id=?').get(userId).role;
+    res.json({id:cls.id,name:cls.name,school:cls.school,teacher_name:cls.teacher_name,class_code:cls.class_code,code_expires_at:cls.code_expires_at,memberCount:mc,isMember:!!isM,currentUserRole:role,teacher_api_key_shared:cls.teacher_api_key_shared});
+  } catch(e) { if (e.message === '未登录') return res.status(401).json({error:e.message}); res.status(500).json({error:e.message}); }
+});
+
+app.post('/api/v1/class/refresh-code', (req, res) => {
+  try {
+    const userId = getUserId(req), classId = req.body.classId;
+    const cls = db.prepare('SELECT * FROM classes WHERE id=? AND teacher_id=?').get(classId, userId);
+    if (!cls) return res.status(404).json({error:'班级不存在'});
+    var cc2 = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789', nc = '';
+    for (var i = 0; i < 8; i++) nc += cc2[Math.floor(Math.random() * cc2.length)];
+    const ea = new Date(Date.now()+86400000).toISOString();
+    db.prepare('UPDATE classes SET class_code=?, code_expires_at=? WHERE id=?').run(nc, ea, classId);
+    var ms = db.prepare('SELECT student_id FROM class_members WHERE class_id=?').all(classId);
+    ms.forEach(function(m){db.prepare("INSERT INTO notifications (user_id,type,content,class_id) VALUES (?,?,'班级码已更新',?)").run(m.student_id,'code_updated',classId);});
+    res.json({class_code:nc,code_expires_at:ea});
+  } catch(e) { if (e.message === '未登录') return res.status(401).json({error:e.message}); res.status(500).json({error:e.message}); }
+});
+
+app.post('/api/v1/class/leave', (req, res) => {
+  try {
+    const userId = getUserId(req), classId = req.body.classId, user = db.prepare('SELECT role FROM users WHERE id=?').get(userId);
+    if (user.role === 'teacher') { db.prepare('UPDATE classes SET active=0 WHERE id=? AND teacher_id=?').run(classId, userId); }
+    else { db.prepare('DELETE FROM class_members WHERE class_id=? AND student_id=?').run(classId, userId); }
+    res.json({success:true});
+  } catch(e) { if (e.message === '未登录') return res.status(401).json({error:e.message}); res.status(500).json({error:e.message}); }
+});
+
+app.get('/api/v1/class/:id/leaderboard', (req, res) => {
+  try {
+    const cls = db.prepare('SELECT * FROM classes WHERE id=?').get(req.params.id);
+    if (!cls) return res.status(404).json({error:'班级不存在'});
+    var members = db.prepare("SELECT u.id,u.username,COALESCE(u.display_name,u.username) as display_name,COUNT(l.id) as total_practices,COALESCE(SUM(CASE WHEN l.score_total>=80 THEN 1 ELSE 0 END),0) as high_quality_count,ROUND(AVG(l.score_total),1) as avg_score FROM class_members cm JOIN users u ON cm.student_id=u.id LEFT JOIN practice_logs l ON u.id=l.user_id WHERE cm.class_id=? GROUP BY u.id ORDER BY high_quality_count DESC").all(cls.id);
+    res.json(members);
+  } catch(e) { if (e.message === '未登录') return res.status(401).json({error:e.message}); res.status(500).json({error:e.message}); }
+});
+
+app.post('/api/v1/class/task/create', (req, res) => {
+  try {
+    const userId = getUserId(req), user = db.prepare('SELECT role FROM users WHERE id=?').get(userId);
+    if (user.role !== 'teacher') return res.status(403).json({error:'仅教师可发布'});
+    var classId = req.body.classId, title = req.body.title, diff = req.body.difficulty, wc = req.body.wordCount||10, qr = req.body.qualityRequirement||80;
+    if (!classId||!title||!diff) return res.status(400).json({error:'参数不完整'});
+    var r = db.prepare('INSERT INTO class_tasks (class_id,teacher_id,title,difficulty,word_count,quality_requirement) VALUES (?,?,?,?,?,?)').run(classId,userId,title,diff,wc,qr);
+    var ms = db.prepare('SELECT student_id FROM class_members WHERE class_id=?').all(classId);
+    var ins = db.prepare('INSERT INTO task_progress (task_id,student_id,total_count) VALUES (?,?,?)');
+    ms.forEach(function(m){ins.run(r.lastInsertRowid,m.student_id,wc);});
+    ms.forEach(function(m){db.prepare("INSERT INTO notifications (user_id,type,content,class_id) VALUES (?,?,'新任务: '+title,?)").run(m.student_id,'new_task',classId);});
+    res.json({id:r.lastInsertRowid});
+  } catch(e) { if (e.message === '未登录') return res.status(401).json({error:e.message}); res.status(500).json({error:e.message}); }
+});
+
+app.get('/api/v1/class/:id/tasks', (req, res) => {
+  try {
+    const userId = getUserId(req);
+    var tasks = db.prepare('SELECT t.*,tp.status,tp.completed_count,tp.qualified_count,tp.total_count FROM class_tasks t LEFT JOIN task_progress tp ON t.id=tp.task_id AND tp.student_id=? WHERE t.class_id=? ORDER BY t.created_at DESC').all(userId, req.params.id);
+    res.json(tasks);
+  } catch(e) { if (e.message === '未登录') return res.status(401).json({error:e.message}); res.status(500).json({error:e.message}); }
+});
+
+app.post('/api/v1/class/task/progress', (req, res) => {
+  try {
+    const userId = getUserId(req), taskId = req.body.taskId, completed = req.body.completed||0, qualified = req.body.qualified||0;
+    var tp = db.prepare('SELECT * FROM task_progress WHERE task_id=? AND student_id=?').get(taskId, userId);
+    if (!tp) return res.status(404).json({error:'任务不存在'});
+    var nc = (tp.completed_count||0)+completed, nq = (tp.qualified_count||0)+qualified, st = 'in_progress';
+    if (nc >= tp.total_count) st = 'completed';
+    db.prepare('UPDATE task_progress SET completed_count=?,qualified_count=?,status=? WHERE id=?').run(nc, nq, st, tp.id);
+    res.json({completed:nc,total:tp.total_count,status:st});
+  } catch(e) { if (e.message === '未登录') return res.status(401).json({error:e.message}); res.status(500).json({error:e.message}); }
+});
+
+app.put('/api/v1/class/toggle-key-sharing', (req, res) => {
+  try {
+    const userId = getUserId(req), classId = req.body.classId, shared = req.body.shared;
+    var cls = db.prepare('SELECT id FROM classes WHERE id=? AND teacher_id=?').get(classId, userId);
+    if (!cls) return res.status(404).json({error:'班级不存在'});
+    db.prepare('UPDATE users SET teacher_api_key_shared=? WHERE id=?').run(shared?1:0, userId);
+    if (!shared) db.prepare('UPDATE class_members SET use_teacher_key=0 WHERE class_id=?').run(classId);
+    res.json({success:true,shared:!!shared});
+  } catch(e) { if (e.message === '未登录') return res.status(401).json({error:e.message}); res.status(500).json({error:e.message}); }
+});
+
+app.put('/api/v1/class/use-teacher-key', (req, res) => {
+  try {
+    const userId = getUserId(req), classId = req.body.classId, useKey = req.body.useKey;
+    var t = db.prepare('SELECT c.id,u.teacher_api_key_shared FROM classes c JOIN users u ON c.teacher_id=u.id WHERE c.id=?').get(classId);
+    if (!t) return res.status(404).json({error:'班级不存在'});
+    if (useKey && !t.teacher_api_key_shared) return res.status(400).json({error:'老师未开启Key共享'});
+    db.prepare('UPDATE class_members SET use_teacher_key=? WHERE class_id=? AND student_id=?').run(useKey?1:0, classId, userId);
+    res.json({success:true});
+  } catch(e) { if (e.message === '未登录') return res.status(401).json({error:e.message}); res.status(500).json({error:e.message}); }
+});
+
+app.get('/api/v1/class/:id/usage', (req, res) => {
+  try {
+    const userId = getUserId(req);
+    var cls = db.prepare('SELECT id FROM classes WHERE id=? AND teacher_id=?').get(req.params.id, userId);
+    if (!cls) return res.status(403).json({error:'无权限'});
+    var rows = db.prepare("SELECT u.username,COALESCE(SUM(a.call_count),0) as total_calls FROM class_members cm JOIN users u ON cm.student_id=u.id LEFT JOIN api_usage_logs a ON u.id=a.student_id WHERE cm.class_id=? GROUP BY u.id ORDER BY total_calls DESC").all(cls.id);
+    res.json(rows);
+  } catch(e) { if (e.message === '未登录') return res.status(401).json({error:e.message}); res.status(500).json({error:e.message}); }
+});
+
+app.get('/api/v1/class/:id/members', (req, res) => {
+  try {
+    var rows = db.prepare("SELECT u.id,u.username,COALESCE(u.display_name,u.username) as display_name,u.school,cm.use_teacher_key,cm.joined_at FROM class_members cm JOIN users u ON cm.student_id=u.id WHERE cm.class_id=? ORDER BY cm.joined_at").all(req.params.id);
+    res.json(rows);
+  } catch(e) { if (e.message === '未登录') return res.status(401).json({error:e.message}); res.status(500).json({error:e.message}); }
+});
+
+app.post('/api/v1/class/announcement', (req, res) => {
+  try {
+    const userId = getUserId(req), classId = req.body.classId, content = req.body.content;
+    if (!content) return res.status(400).json({error:'请输入公告'});
+    var cls = db.prepare('SELECT id FROM classes WHERE id=? AND teacher_id=?').get(classId, userId);
+    if (!cls) return res.status(403).json({error:'无权限'});
+    var r = db.prepare('INSERT INTO class_announcements (class_id,teacher_id,content) VALUES (?,?,?)').run(classId, userId, content);
+    var ms = db.prepare('SELECT student_id FROM class_members WHERE class_id=?').all(classId);
+    ms.forEach(function(m){db.prepare("INSERT INTO notifications (user_id,type,content,class_id) VALUES (?,?,'新公告',?)").run(m.student_id,'new_announcement',classId);});
+    res.json({id:r.lastInsertRowid});
+  } catch(e) { if (e.message === '未登录') return res.status(401).json({error:e.message}); res.status(500).json({error:e.message}); }
+});
+
+app.get('/api/v1/class/:id/announcements', (req, res) => {
+  try {
+    var rows = db.prepare("SELECT a.*,u.username as teacher_name FROM class_announcements a JOIN users u ON a.teacher_id=u.id WHERE a.class_id=? ORDER BY a.created_at DESC LIMIT 20").all(req.params.id);
+    res.json(rows);
+  } catch(e) { if (e.message === '未登录') return res.status(401).json({error:e.message}); res.status(500).json({error:e.message}); }
+});
+
+app.get('/api/v1/notifications', (req, res) => {
+  try {
+    const userId = getUserId(req);
+    var rows = db.prepare('SELECT * FROM notifications WHERE user_id=? ORDER BY created_at DESC LIMIT 50').all(userId);
+    var unread = db.prepare('SELECT COUNT(*) as c FROM notifications WHERE user_id=? AND is_read=0').get(userId).c;
+    res.json({notifications:rows,unread:unread});
+  } catch(e) { if (e.message === '未登录') return res.status(401).json({error:e.message}); res.status(500).json({error:e.message}); }
+});
+
+app.put('/api/v1/notifications/read/:id', (req, res) => {
+  try {
+    const userId = getUserId(req);
+    db.prepare('UPDATE notifications SET is_read=1 WHERE id=? AND user_id=?').run(req.params.id, userId);
+    res.json({success:true});
+  } catch(e) { if (e.message === '未登录') return res.status(401).json({error:e.message}); res.status(500).json({error:e.message}); }
+});
+
 app.post('/api/v1/ai/smart-translate', async (req, res) => {
   try {
     const userId = getUserId(req);
