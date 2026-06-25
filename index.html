@@ -2881,14 +2881,63 @@
       } catch(e) { $('myClassesContent').innerHTML = '<div class="error-text">加载失败</div>'; }
     }
     $('classHomeClose').addEventListener('click', () => $('classHomeModal').style.display = 'none');
+    let currentClassId = null;
     window.openClassHome = async (classId) => {
       $('classHomeModal').style.display = 'flex';
       $('classHomeTitle').textContent = '班级';
+      currentClassId = classId;
+      // Remove old management bar
+      var oldBar = document.querySelector('.teacher-mgmt-bar');
+      if (oldBar) oldBar.remove();
       try {
-        const resp = await fetch(BACKEND_URL+'/api/v1/class/'+classId+'/detail', { headers: authHeaders() });
-        const cls = await resp.json();
+        var resp = await fetch(BACKEND_URL+'/api/v1/class/'+classId+'/detail', { headers: authHeaders() });
+        var cls = await resp.json();
         if (cls.error) throw new Error(cls.error);
         $('classHomeTitle').textContent = cls.name + (cls.school ? ' · '+cls.school : '');
+        var isTeacher = cls.currentUserRole === 'teacher';
+        // Management bar for teachers
+        if (isTeacher) {
+          var bar = document.createElement('div');
+          bar.className = 'teacher-mgmt-bar';
+          bar.style.cssText = 'display:flex;gap:8px;padding:8px 0;margin-bottom:10px;flex-wrap:wrap;';
+          bar.innerHTML =
+            '<button class="small-btn" id="tCreateTaskBtn">+发布任务</button>'+
+            '<button class="small-btn" id="tAnnounceBtn">+公告</button>'+
+            '<button class="small-btn" id="tKeyBtn">'+(cls.teacher_api_key_shared?'关闭Key共享':'开启Key共享')+'</button>'+
+            '<button class="small-btn" id="tRefreshCodeBtn">刷新班级码</button>';
+          $('classHomeContent').parentNode.insertBefore(bar, $('classHomeContent'));
+          $('tCreateTaskBtn').onclick = function() { $('createTaskModal').style.display = 'flex'; };
+          $('tAnnounceBtn').onclick = function() { $('announcementModal').style.display = 'flex'; };
+          $('tKeyBtn').onclick = async function() {
+            try {
+              await fetch(BACKEND_URL+'/api/v1/class/toggle-key-sharing', { method:'PUT', headers: authHeaders(), body: JSON.stringify({ classId: classId, shared: !cls.teacher_api_key_shared }) });
+              alert(cls.teacher_api_key_shared ? '已关闭 Key 共享' : '已开启 Key 共享');
+            } catch(e) { alert('操作失败'); }
+          };
+          $('tRefreshCodeBtn').onclick = async function() {
+            try {
+              var r2 = await fetch(BACKEND_URL+'/api/v1/class/refresh-code', { method:'POST', headers: authHeaders(), body: JSON.stringify({ classId: classId }) });
+              var d2 = await r2.json();
+              alert('新班级码: ' + d2.class_code);
+            } catch(e) { alert('操作失败'); }
+          };
+        } else {
+          // Student key toggle
+          var bar = document.createElement('div');
+          bar.className = 'teacher-mgmt-bar';
+          bar.style.cssText = 'display:flex;gap:8px;padding:8px 0;margin-bottom:10px;flex-wrap:wrap;';
+          bar.innerHTML = '<label style="font-size:0.85rem;display:flex;align-items:center;gap:6px;cursor:pointer;">'+
+            '<input type="checkbox" id="studentKeyToggle"'+(cls.teacher_api_key_shared?'':' disabled')+'> 使用老师的 API Key</label>';
+          $('classHomeContent').parentNode.insertBefore(bar, $('classHomeContent'));
+          var stk = document.getElementById('studentKeyToggle');
+          if (stk) {
+            stk.onchange = async function() {
+              try {
+                await fetch(BACKEND_URL+'/api/v1/class/use-teacher-key', { method:'PUT', headers: authHeaders(), body: JSON.stringify({ classId: classId, useKey: stk.checked }) });
+              } catch(e) { alert('操作失败'); }
+            };
+          }
+        }
         loadClassLeaderboard(classId);
         loadClassTasks(classId);
         loadClassMembers(classId);
@@ -2996,8 +3045,7 @@
     });
     $('classLeaderboardBtn').addEventListener('click', () => {
       $('settingsDrawer').style.display = 'none';
-      $('leaderboardModal').style.display = 'flex';
-      switchLeaderTab('exam');
+      loadMyClasses();
     });
     $('createClassBtn').addEventListener('click', async () => {
       $('settingsDrawer').style.display = 'none';
