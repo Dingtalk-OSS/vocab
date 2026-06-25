@@ -800,17 +800,27 @@ app.get('/api/v1/user/profile', (req, res) => {
     const targetUsername = req.query.username || '';
     if (targetUsername) {
       // 查看其他用户的公开资料
-      const user = db.prepare('SELECT id, username, display_name, tagline, status FROM users WHERE username = ?').get(targetUsername);
+      var user = db.prepare('SELECT id, username, display_name, tagline, status, role, school FROM users WHERE username = ?').get(targetUsername);
       if (!user) return res.status(404).json({ error: '用户不存在' });
-      const stats = db.prepare(`SELECT COUNT(*) as total_count FROM practice_logs WHERE user_id = ? AND is_practice = 0`).get(user.id);
-      const rankRow = db.prepare(`SELECT COUNT(*)+1 as rank FROM (SELECT user_id FROM practice_logs WHERE is_practice=0 GROUP BY user_id HAVING COUNT(*)>=3 AND AVG(score_total)>(SELECT AVG(score_total) FROM practice_logs WHERE user_id=? AND is_practice=0))`).get(user.id);
-      res.json({ username: user.username, display_name: user.display_name, tagline: user.tagline, status: user.status, total_count: stats.total_count, rank: rankRow.rank });
+      var stats = db.prepare('SELECT COUNT(*) as total_count FROM practice_logs WHERE user_id = ? AND is_practice = 0').get(user.id);
+      var rankRow = db.prepare('SELECT COUNT(*)+1 as rank FROM (SELECT user_id FROM practice_logs WHERE is_practice=0 GROUP BY user_id HAVING COUNT(*)>=3 AND AVG(score_total)>(SELECT AVG(score_total) FROM practice_logs WHERE user_id=? AND is_practice=0))').get(user.id);
+      var classInfo = null;
+      if (user.role === 'student') {
+        var cm = db.prepare('SELECT c.name as class_name, c.school, u.username as teacher_name FROM class_members cm JOIN classes c ON cm.class_id=c.id JOIN users u ON c.teacher_id=u.id WHERE cm.student_id=? AND c.active=1 ORDER BY cm.joined_at DESC LIMIT 1').get(user.id);
+        if (cm) classInfo = cm;
+      }
+      res.json({ id:user.id, username: user.username, display_name: user.display_name, tagline: user.tagline, status: user.status, role: user.role, school: user.school, total_count: stats.total_count, rank: rankRow.rank, classInfo: classInfo });
     } else {
       // 查看自己的资料
-      const user = db.prepare('SELECT id, username, display_name, tagline, status FROM users WHERE id = ?').get(viewerId);
-      const stats = db.prepare(`SELECT COUNT(*) as total_count FROM practice_logs WHERE user_id = ? AND is_practice = 0`).get(viewerId);
-      const rankRow = db.prepare(`SELECT COUNT(*)+1 as rank FROM (SELECT user_id FROM practice_logs WHERE is_practice=0 GROUP BY user_id HAVING COUNT(*)>=3 AND AVG(score_total)>(SELECT AVG(score_total) FROM practice_logs WHERE user_id=? AND is_practice=0))`).get(viewerId);
-      res.json({ username: user.username, display_name: user.display_name, tagline: user.tagline, status: user.status, total_count: stats.total_count, rank: rankRow.rank });
+      var user = db.prepare('SELECT id, username, display_name, tagline, status, role, school FROM users WHERE id = ?').get(viewerId);
+      var stats = db.prepare('SELECT COUNT(*) as total_count FROM practice_logs WHERE user_id = ? AND is_practice = 0').get(viewerId);
+      var rankRow = db.prepare('SELECT COUNT(*)+1 as rank FROM (SELECT user_id FROM practice_logs WHERE is_practice=0 GROUP BY user_id HAVING COUNT(*)>=3 AND AVG(score_total)>(SELECT AVG(score_total) FROM practice_logs WHERE user_id=? AND is_practice=0))').get(viewerId);
+      var classInfo = null;
+      if (user.role === 'student') {
+        var cm = db.prepare('SELECT c.name as class_name, c.school, u.username as teacher_name FROM class_members cm JOIN classes c ON cm.class_id=c.id JOIN users u ON c.teacher_id=u.id WHERE cm.student_id=? AND c.active=1 ORDER BY cm.joined_at DESC LIMIT 1').get(viewerId);
+        if (cm) classInfo = cm;
+      }
+      res.json({ id:user.id, username: user.username, display_name: user.display_name, tagline: user.tagline, status: user.status, role: user.role, school: user.school, total_count: stats.total_count, rank: rankRow.rank, classInfo: classInfo });
     }
   } catch (e) {
     if (e.message === '未登录') return res.status(401).json({ error: e.message });

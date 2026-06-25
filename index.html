@@ -990,7 +990,7 @@
   <div id="settingsDrawer" style="position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg-start);z-index:200;display:none;flex-direction:column;overflow-y:auto;">
     <div style="display:flex;align-items:center;gap:12px;padding:10px 16px;background:var(--card-bg);border-bottom:1px solid var(--input-border);position:sticky;top:0;z-index:10;">
       <button class="btn" id="drawerCloseBtn" style="padding:6px 14px;font-size:0.85rem;">← 返回</button>
-      <span style="font-size:1.1rem;font-weight:600;color:var(--text-primary);">设置</span>
+      <span style="font-size:1.1rem;font-weight:600;color:var(--text-primary);">设置</span><span class="user-role-badge" style="font-size:0.75rem;color:var(--accent);background:var(--accent-light);padding:2px 10px;border-radius:10px;margin-left:8px;"></span>
     </div>
     <div style="padding:16px;max-width:800px;margin:0 auto;width:100%;">
       <!-- 外观 -->
@@ -1974,20 +1974,7 @@
         const d = await resp.json();
         let badgeHtml = '<span class="text-secondary">暂无徽章</span>';
         try {
-          const br = await fetch(BACKEND_URL+'/api/v1/exam/badges?userId='+d.id, { headers: authHeaders() });
-          const badges = await br.json();
-          if (badges.length) {
-            badgeHtml = badges.map(b => '<span style="white-space:nowrap; background:var(--accent-light); border:1px solid var(--accent); border-radius:20px; padding:4px 14px; font-size:0.85rem; color:var(--accent); font-weight:500; margin:4px;">\u{1F3C6} '+b.difficulty+' 认证</span>').join(' ');
-          }
-        } catch(e) {}
-        const avatarColor = getAvatarColor(d.display_name||d.username);
-        const initial = (d.display_name||d.username)[0].toUpperCase();
-        $('fullProfileContent').innerHTML =
-          '<div style="text-align:center; padding:20px;">'+
-            '<div style="width:72px;height:72px;border-radius:50%;background:'+avatarColor+';display:inline-flex;align-items:center;justify-content:center;font-size:2rem;font-weight:600;color:#fff;margin-bottom:10px;">'+initial+'</div>'+
-            '<div style="font-size:1.3rem;font-weight:600;color:var(--text-primary);">'+(d.display_name||d.username)+'</div>'+
-            '<div style="font-size:0.85rem;color:var(--text-secondary);margin-top:4px;">@'+d.username+'</div>'+
-            '<div style="font-size:0.9rem;color:var(--text-secondary);margin-top:6px;font-style:italic;">'+(d.tagline||'这个人很懒，什么都没写')+'</div>'+
+          const br = await fetch(BACKEND_URL(d.tagline||'这个人很懒，什么都没写')+'</div>+'<div style="font-size:0.85rem;color:var(--accent);margin-top:6px;text-align:center;">'+(d.role==='teacher'?'教师':d.role==='student'?'学生':'个人')+(d.school?' | '+d.school:'')+(d.classInfo?' | '+d.classInfo.class_name+' ('+d.classInfo.teacher_name+')':'')+'</div>+'<div style="display:flex;flex-wrap:wrap;justify-content:center;gap:4px;margin-top:12px;max-height:60px;overflow:hidden;">'+badgeHtml+'</div>+(d.tagline||'这个人很懒，什么都没写')+'</div>'+
             '<div style="display:flex;flex-wrap:wrap;justify-content:center;gap:4px;margin-top:12px;max-height:60px;overflow:hidden;">'+badgeHtml+'</div>'+
           '</div>'+
           '<div style="display:flex;justify-content:center;gap:30px;padding:16px 0;border-top:1px solid var(--input-border);border-bottom:1px solid var(--input-border);margin-bottom:16px;">'+
@@ -2880,6 +2867,20 @@
           .then(r => r.json()).then(d => {
             $('profileTotalCount').textContent = d.total_count || 0;
             $('profileRank').textContent = d.rank || '--';
+            // 显示身份 + 学校
+            var roleLabel = d.role === 'teacher' ? '教师' : d.role === 'student' ? '学生' : '个人';
+            var roleSchoolEl = document.querySelector('.profile-role-school');
+            if (!roleSchoolEl) {
+              var us = document.getElementById('profileUsername');
+              roleSchoolEl = document.createElement('div');
+              roleSchoolEl.className = 'profile-role-school';
+              roleSchoolEl.style.cssText = 'font-size:0.85rem;color:var(--text-secondary);text-align:center;margin-top:4px;';
+              us.parentNode.insertBefore(roleSchoolEl, us.nextSibling);
+            }
+            var info = roleLabel;
+            if (d.school) info += ' | ' + d.school;
+            if (d.classInfo) info += ' | ' + d.classInfo.class_name + ' (' + d.classInfo.teacher_name + ')';
+            roleSchoolEl.textContent = info;
           }).catch(() => {});
       }
       $('profileModal').style.display = 'flex';
@@ -3123,7 +3124,7 @@
       } catch(e) { alert('创建失败'); }
     });
     const curRole = localStorage.getItem('user_role');
-    if (curRole === 'teacher') $('createClassBtn').style.display = 'flex';
+    if (curRole === 'teacher') { $('createClassBtn').style.display = 'flex'; $('joinClassBtn').style.display = 'none'; }
 
     // ==== 通知系统 ====
     $('notifBell').addEventListener('click', () => {
