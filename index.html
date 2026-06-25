@@ -616,13 +616,44 @@
 
   <!-- 管理后台弹窗 -->
   <div id="adminPanelModal" class="modal-overlay" style="display:none;">
-    <div class="modal-card" style="max-width:500px;">
-      <button class="modal-close-btn" id="adminPanelClose">X</button>
-      <h4>管理后台</h4>
-      <div style="margin-bottom:12px; font-size:0.95rem; color:var(--text-primary); font-weight:500;">密码重置申请</div>
-      <div id="adminPendingList" style="max-height:30vh; overflow-y:auto; margin-bottom:16px;"></div>
-      <div style="margin-bottom:12px; font-size:0.95rem; color:var(--text-primary); font-weight:500;">注册用户</div>
-      <div id="adminUserList" style="max-height:30vh; overflow-y:auto;"></div>
+    <div class="modal-card" style="max-width:550px;">
+      <button class="btn" id="adminPanelClose" style="position:absolute;top:14px;left:14px;padding:6px 14px;font-size:0.85rem;z-index:10;">← 返回</button>
+      <h4 style="margin-left:60px;">管理后台</h4>
+      <!-- 待审批老师 -->
+      <div style="border:1px solid var(--input-border); border-radius:14px; padding:14px; margin-bottom:12px;">
+        <div style="font-size:0.95rem; color:var(--text-primary); font-weight:500; margin-bottom:8px;">教师注册审批</div>
+        <div id="adminPendingTeachers" style="max-height:20vh; overflow-y:auto; font-size:0.85rem;"></div>
+      </div>
+      <!-- 创建老师 -->
+      <div style="border:1px solid var(--input-border); border-radius:14px; padding:14px; margin-bottom:12px;">
+        <div style="font-size:0.95rem; color:var(--text-primary); font-weight:500; margin-bottom:8px;">新建老师</div>
+        <div style="display:flex; gap:6px; margin-bottom:6px;">
+          <input type="text" id="newTeacherName" placeholder="用户名" style="flex:2; min-height:auto; padding:8px 12px; font-size:0.85rem;">
+          <input type="text" id="newTeacherPwd" placeholder="密码" value="123456" style="flex:1; min-height:auto; padding:8px 12px; font-size:0.85rem;">
+          <input type="text" id="newTeacherSchool" placeholder="学校" style="flex:2; min-height:auto; padding:8px 12px; font-size:0.85rem;">
+          <button class="small-btn" id="addTeacherBtn">添加</button>
+        </div>
+        <div style="margin-top:6px;">
+          <textarea id="batchTeacherInput" placeholder="批量创建，每行：用户名,密码,学校&#10;如：zhang,123456,一中" style="width:100%; min-height:50px; padding:8px; font-size:0.85rem; background:var(--input-bg); border:1px solid var(--input-border); border-radius:8px; color:var(--text-primary); outline:none;"></textarea>
+          <button class="small-btn" id="batchTeacherBtn" style="margin-top:4px;">批量创建</button>
+        </div>
+        <div id="teacherCreateStatus" style="font-size:0.8rem; margin-top:4px;"></div>
+      </div>
+      <!-- 老师列表 -->
+      <div style="border:1px solid var(--input-border); border-radius:14px; padding:14px; margin-bottom:12px;">
+        <div style="font-size:0.95rem; color:var(--text-primary); font-weight:500; margin-bottom:8px;">教师管理</div>
+        <div id="adminTeacherList" style="max-height:20vh; overflow-y:auto; font-size:0.85rem;"></div>
+      </div>
+      <!-- 密码重置申请 -->
+      <div style="border:1px solid var(--input-border); border-radius:14px; padding:14px; margin-bottom:12px;">
+        <div style="font-size:0.95rem; color:var(--text-primary); font-weight:500; margin-bottom:8px;">密码重置申请</div>
+        <div id="adminPendingList" style="max-height:20vh; overflow-y:auto; font-size:0.85rem;"></div>
+      </div>
+      <!-- 注册用户 -->
+      <div style="border:1px solid var(--input-border); border-radius:14px; padding:14px;">
+        <div style="font-size:0.95rem; color:var(--text-primary); font-weight:500; margin-bottom:8px;">注册用户</div>
+        <div id="adminUserList" style="max-height:20vh; overflow-y:auto; font-size:0.85rem;"></div>
+      </div>
     </div>
   </div>
 
@@ -1185,7 +1216,8 @@
       });
       const data = await resp.json();
       if (!resp.ok) return alert(data.error);
-      alert('注册成功，请登录');
+      var regRole = $('authRole').value;
+      alert(regRole === 'teacher' ? '注册成功，请等待管理员审批通过后登录' : '注册成功，请登录');
     });
     // 忘记密码
     $('forgotPwdBtn').addEventListener('click', () => { $('forgotPwdModal').style.display = 'flex'; });
@@ -2095,31 +2127,52 @@
     });
     // 管理后台
     function loadAdminPanel() {
+      $('adminPendingTeachers').innerHTML = '<div class="empty-state">加载中...</div>';
       $('adminPendingList').innerHTML = '<div class="empty-state">加载中...</div>';
       $('adminUserList').innerHTML = '<div class="empty-state">加载中...</div>';
+      $('adminTeacherList').innerHTML = '<div class="empty-state">加载中...</div>';
+      fetch(BACKEND_URL+'/api/v1/admin/pending-teachers',{headers:authHeaders()}).then(r=>r.json()).then(function(d){if(!d.length){$('adminPendingTeachers').innerHTML='<div class="empty-state">暂无待审批老师</div>';return;}$('adminPendingTeachers').innerHTML=d.map(function(t){return '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--input-border);"><span>'+t.username+(t.school?' ('+t.school+')':'')+'</span><div><button class="small-btn" data-approve="'+t.id+'" style="color:var(--accent);">批准</button> <button class="small-btn" data-reject="'+t.id+'" style="color:var(--accent-strong);">拒绝</button></div></div>';}).join('');$('adminPendingTeachers').querySelectorAll('[data-approve]').forEach(function(b){b.onclick=async function(){await fetch(BACKEND_URL+'/api/v1/admin/approve-teacher',{method:'POST',headers:authHeaders(),body:JSON.stringify({targetId:parseInt(b.dataset.approve),action:'approve'})});loadAdminPanel();}});$('adminPendingTeachers').querySelectorAll('[data-reject]').forEach(function(b){b.onclick=async function(){await fetch(BACKEND_URL+'/api/v1/admin/approve-teacher',{method:'POST',headers:authHeaders(),body:JSON.stringify({targetId:parseInt(b.dataset.reject),action:'reject'})});loadAdminPanel();}});}).catch(function(){$('adminPendingTeachers').innerHTML='<div class="error-text">加载失败</div>';});
+      fetch(BACKEND_URL+'/api/v1/admin/teacher-list',{headers:authHeaders()}).then(r=>r.json()).then(function(d){if(!d.length){$('adminTeacherList').innerHTML='<div class="empty-state">暂无老师</div>';return;}$('adminTeacherList').innerHTML=d.map(function(t){return '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--input-border);"><span>'+t.username+(t.school?' ('+t.school+')':'')+' '+(t.class_count?t.class_count+'班':'')+'</span><button class="small-btn" data-toggle="'+t.id+'">'+(t.status==='disabled'?'启用':'禁用')+'</button></div>';}).join('');$('adminTeacherList').querySelectorAll('[data-toggle]').forEach(function(b){b.onclick=async function(){await fetch(BACKEND_URL+'/api/v1/admin/manage-teacher',{method:'POST',headers:authHeaders(),body:JSON.stringify({targetId:parseInt(b.dataset.toggle),action:'toggle-status'})});loadAdminPanel();}});}).catch(function(){$('adminTeacherList').innerHTML='<div class="error-text">加载失败</div>';});
       Promise.all([
-        fetch(BACKEND_URL+'/api/v1/auth/admin/pending-resets', { headers: authHeaders() }).then(r=>r.json()),
-        fetch(BACKEND_URL+'/api/v1/auth/admin/users', { headers: authHeaders() }).then(r=>r.json())
-      ]).then(([pend, users]) => {
-        if (Array.isArray(pend) && pend.length) {
-          $('adminPendingList').innerHTML = pend.map(r => '<div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--input-border);"><span>'+r.username+' <span style="color:var(--text-secondary);font-size:0.85rem;">'+new Date(r.created_at).toLocaleString()+'</span></span><button class="small-btn" data-reset-user="'+r.username+'" data-reset-id="'+r.id+'">重置为123456</button></div>').join('');
-          $('adminPendingList').querySelectorAll('[data-reset-user]').forEach(b => b.addEventListener('click', async (e) => {
-            const btn = e.target;
-            const target_username = btn.dataset.resetUser;
-            const request_id = btn.dataset.resetId;
-            try {
-              const resp = await fetch(BACKEND_URL+'/api/v1/auth/admin/reset-password', { method:'POST', headers: authHeaders(), body: JSON.stringify({target_username, request_id: parseInt(request_id)}) });
-              const d = await resp.json();
-              alert(d.message || d.error);
-              if (d.success) loadAdminPanel();
-            } catch(e) { alert('重置失败'); }
-          }));
-        } else { $('adminPendingList').innerHTML = '<div class="empty-state">暂无待处理的申请</div>'; }
-        if (Array.isArray(users) && users.length) {
-          $('adminUserList').innerHTML = users.map(u => '<div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid var(--input-border);"><span>'+u.username+'</span><span style="color:var(--text-secondary);font-size:0.85rem;">'+new Date(u.created_at).toLocaleString()+'</span></div>').join('');
-        } else { $('adminUserList').innerHTML = '<div class="empty-state">暂无用户</div>'; }
-      }).catch(() => { $('adminPendingList').innerHTML = '<div class="error-text">加载失败</div>'; });
+        fetch(BACKEND_URL+'/api/v1/auth/admin/pending-resets',{headers:authHeaders()}).then(r=>r.json()),
+        fetch(BACKEND_URL+'/api/v1/auth/admin/users',{headers:authHeaders()}).then(r=>r.json())
+      ]).then(function(r){var pend=r[0],users=r[1];
+        if(pend.length){$('adminPendingList').innerHTML=pend.map(function(r2){return '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--input-border);"><span>'+r2.username+' <span style="font-size:0.8rem;color:var(--text-secondary);">'+new Date(r2.created_at).toLocaleString()+'</span></span><button class="small-btn" data-reset-user="'+r2.username+'" data-reset-id="'+r2.id+'">重置为123456</button></div>';}).join('')}else{$('adminPendingList').innerHTML='<div class="empty-state">暂无待处理的申请</div>'}
+        if(users.length){$('adminUserList').innerHTML=users.map(function(u){return '<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--input-border);"><span>'+u.username+'</span><span style="font-size:0.8rem;color:var(--text-secondary);">'+(u.role||'')+'</span></div>';}).join('')}else{$('adminUserList').innerHTML='<div class="empty-state">暂无用户</div>'}
+        $('adminPendingList').querySelectorAll('[data-reset-user]').forEach(function(b){b.addEventListener('click',async function(e){try{var resp=await fetch(BACKEND_URL+'/api/v1/auth/admin/reset-password',{method:'POST',headers:authHeaders(),body:JSON.stringify({target_username:e.target.dataset.resetUser,request_id:parseInt(e.target.dataset.resetId)})});var d=await resp.json();alert(d.message||d.error);if(d.success)loadAdminPanel()}catch(e2){alert('重置失败')}})});
+      }).catch(function(){$('adminPendingList').innerHTML='<div class="error-text">加载失败</div>';});
     }
+    
+    $('addTeacherBtn').addEventListener('click', async () => {
+      var name = $('newTeacherName').value.trim();
+      var pwd = $('newTeacherPwd').value.trim() || '123456';
+      var school = $('newTeacherSchool').value.trim();
+      if (!name) { $('teacherCreateStatus').textContent = '请输入用户名'; return; }
+      $('addTeacherBtn').disabled = true;
+      try {
+        var r = await fetch(BACKEND_URL+'/api/v1/admin/create-teachers', { method:'POST', headers: authHeaders(), body: JSON.stringify({ teachers: [{username:name, password:pwd, school:school}] }) });
+        var d = await r.json();
+        $('teacherCreateStatus').textContent = d.added > 0 ? '创建成功' : '创建失败（可能用户名重复）';
+        if (d.added > 0) { $('newTeacherName').value = ''; loadAdminPanel(); }
+      } catch(e) { $('teacherCreateStatus').textContent = '创建失败'; }
+      $('addTeacherBtn').disabled = false;
+    });
+    $('batchTeacherBtn').addEventListener('click', async () => {
+      var text = $('batchTeacherInput').value.trim();
+      if (!text) { $('teacherCreateStatus').textContent = '请输入老师信息'; return; }
+      var teachers = text.split('\n').filter(function(l){return l.trim()}).map(function(l){
+        var parts = l.split(',');
+        return {username: (parts[0]||'').trim(), password: (parts[1]||'123456').trim(), school: (parts[2]||'').trim()};
+      });
+      $('batchTeacherBtn').disabled = true;
+      try {
+        var r = await fetch(BACKEND_URL+'/api/v1/admin/create-teachers', { method:'POST', headers: authHeaders(), body: JSON.stringify({ teachers: teachers }) });
+        var d = await r.json();
+        $('teacherCreateStatus').textContent = '创建成功 '+d.added+' 个，跳过 '+d.skipped+' 个';
+        if (d.added > 0) { $('batchTeacherInput').value = ''; loadAdminPanel(); }
+      } catch(e) { $('teacherCreateStatus').textContent = '创建失败'; }
+      $('batchTeacherBtn').disabled = false;
+    });
     $('adminPanelClose').addEventListener('click', () => $('adminPanelModal').style.display = 'none');
     $('changeDifficultyBtn').addEventListener('click', () => {
       $('settingsDrawer').classList.remove('open');

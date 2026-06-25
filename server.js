@@ -162,6 +162,7 @@ try { db.exec('ALTER TABLE users ADD COLUMN exam_opt_out INTEGER DEFAULT 0'); } 
 try { db.exec("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'student'"); } catch(e) {}
 try { db.exec("ALTER TABLE users ADD COLUMN school TEXT DEFAULT ''"); } catch(e) {}
 try { db.exec("ALTER TABLE users ADD COLUMN teacher_api_key_shared INTEGER DEFAULT 0"); } catch(e) {}
+try { db.exec("ALTER TABLE users ADD COLUMN status TEXT DEFAULT 'active'"); } catch(e) {}
 
 // 班级表
 db.exec(`CREATE TABLE IF NOT EXISTS classes (
@@ -368,7 +369,8 @@ app.post('/api/v1/auth/register', async (req, res) => {
     validateUsername(username);
     if (password.length < 4) return res.status(400).json({ error: '密码至少 4 个字符' });
     const hash = await bcrypt.hash(password, 10);
-    db.prepare('INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)').run(username, hash, role);
+    var regStatus = role === 'teacher' ? 'pending' : 'active';
+    db.prepare('INSERT INTO users (username, password_hash, role, status) VALUES (?, ?, ?, ?)').run(username, hash, role, regStatus);
     res.json({ message: '注册成功' });
   } catch (e) {
     if (e.code === 'SQLITE_CONSTRAINT_UNIQUE') return res.status(409).json({ error: '用户名已存在' });
@@ -401,6 +403,8 @@ app.post('/api/v1/auth/login', async (req, res) => {
     if (!user) return res.status(401).json({ error: '用户名或密码错误' });
     const valid = await bcrypt.compare(password, user.password_hash);
     if (!valid) return res.status(401).json({ error: '用户名或密码错误' });
+    if (user.status === 'pending') return res.status(403).json({ error: '账号待管理员审批，请稍后登录' });
+    if (user.status === 'disabled') return res.status(403).json({ error: '账号已被禁用' });
     const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' });
     // 记录登录
     try { db.prepare('INSERT INTO login_logs (user_id, ip) VALUES (?, ?)').run(user.id, ip); } catch(e) {}
@@ -1033,6 +1037,106 @@ app.get('/api/v1/auth/admin/users', (req, res) => {
     const user = db.prepare('SELECT username FROM users WHERE id = ?').get(userId);
     if (user.username !== 'Aaa') return res.status(403).json({ error: '无权限' });
     const rows = db.prepare('SELECT id, username, display_name, created_at FROM users ORDER BY id').all();
+    res.json(rows);
+  } catch (e) {
+    if (e.message === '未登录') return res.status(401).json({ error: e.message });
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 管理员：待审批老师列表
+app.get('/api/v1/admin/pending-teachers', (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const user = db.prepare('SELECT username FROM users WHERE id = ?').get(userId);
+    if (user.username !== 'Aaa') return res.status(403).json({ error: '无权限' });
+    const rows = db.prepare("SELECT id, username, school, created_at FROM users WHERE role = 'teacher' AND status = 'pending' ORDER BY created_at DESC").all();
+    res.json(rows);
+  } catch (e) {
+    if (e.message === '未登录') return res.status(401).json({ error: e.message });
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 管理员：审批/拒绝老师
+app.post('/api/v1/admin/approve-teacher', (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const user = db.prepare('SELECT username FROM users WHERE id = ?').get(userId);
+    if (user.username !== 'Aaa') return res.status(403).json({ error: '无权限' });
+    const { targetId, action } = req.body;
+    if (action === 'approve') {
+      db.prepare("UPDATE users SET status = 'active' WHERE id = ? AND role = 'teacher'").run(targetId);
+      res.json({ success: true, message: '已批准' });
+    } else {
+      db.prepare("UPDATE users SET status = 'rejected' WHERE id = ? AND role = 'teacher'").run(targetId);
+      res.json({ success: true, message: '已拒绝' });
+    }
+  } catch (e) {
+    if (e.message === '未登录') return res.status(401).json({ error: e.message });
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 管理员：批量创建老师
+app.post('/api/v1/admin/create-teachers', async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const user = db.prepare('SELECT username FROM users WHERE id = ?').get(userId);
+    if (user.username !== 'Aaa') return res.status(403).json({ error: '无权限' });
+    const { teachers } = req.body;
+    if (!teachers || !teachers.length) return res.status(400).json({ error: '请提供老师信息' });
+    var added = 0, skipped = 0;
+    for (var t of teachers) {
+      var uname = (t.username || '').trim().toLowerCase();
+      var pwd = t.password || '123456';
+      var school = t.school || '';
+      if (!uname) { skipped++; continue; }
+      try {
+        var hash = await bcrypt.hash(pwd, 10);
+        db.prepare("INSERT INTO users (username, password_hash, role, status, school) VALUES (?, ?, 'teacher', 'active', ?)").run(uname, hash, school);
+        added++;
+      } catch(e2) { skipped++; }
+    }
+    res.json({ added, skipped });
+  } catch (e) {
+    if (e.message === '未登录') return res.status(401).json({ error: e.message });
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 管理员：禁用/启用/重置老师
+app.post('/api/v1/admin/manage-teacher', async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const user = db.prepare('SELECT username FROM users WHERE id = ?').get(userId);
+    if (user.username !== 'Aaa') return res.status(403).json({ error: '无权限' });
+    const { targetId, action, newPassword } = req.body;
+    if (action === 'reset-password' && newPassword) {
+      var hash = await bcrypt.hash(newPassword, 10);
+      db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, targetId);
+      res.json({ success: true, message: '密码已重置' });
+    } else if (action === 'toggle-status') {
+      var t = db.prepare('SELECT status FROM users WHERE id = ?').get(targetId);
+      var newStatus = t.status === 'disabled' ? 'active' : 'disabled';
+      db.prepare('UPDATE users SET status = ? WHERE id = ?').run(newStatus, targetId);
+      res.json({ success: true, message: newStatus === 'disabled' ? '已禁用' : '已启用' });
+    } else {
+      res.status(400).json({ error: '无效操作' });
+    }
+  } catch (e) {
+    if (e.message === '未登录') return res.status(401).json({ error: e.message });
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 管理员：所有老师列表
+app.get('/api/v1/admin/teacher-list', (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const user = db.prepare('SELECT username FROM users WHERE id = ?').get(userId);
+    if (user.username !== 'Aaa') return res.status(403).json({ error: '无权限' });
+    const rows = db.prepare("SELECT u.id, u.username, u.school, u.status, u.created_at, (SELECT COUNT(*) FROM classes WHERE teacher_id = u.id AND active=1) as class_count FROM users u WHERE u.role = 'teacher' ORDER BY u.created_at DESC").all();
     res.json(rows);
   } catch (e) {
     if (e.message === '未登录') return res.status(401).json({ error: e.message });
