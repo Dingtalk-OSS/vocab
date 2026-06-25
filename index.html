@@ -1649,6 +1649,15 @@
       } catch(e) { $('resultArea').innerHTML = `<div class="error-text">${e.message}</div>`; $('submitBtn').disabled = false; }
     });
 
+    
+    function updateRoleBadge() {
+      var role = localStorage.getItem('user_role')||'';
+      var badge = document.getElementById('roleBadge');
+      if(!badge)return;
+      var labels={teacher:'教师',student:'学生'};
+      if(role&&labels[role]){badge.textContent=labels[role];badge.style.display='inline';}
+      else{badge.style.display='none';}
+    }
     function updateStats() {
       const avg = scores.length ? (scores.reduce((a,b)=>a+b,0)/scores.length).toFixed(1) : '--';
       $('totalStats').textContent = `总计 ${practiceCount}词 · 均分 ${avg}`;
@@ -3223,9 +3232,8 @@
     }
     // 管理员账号 (Aaa) 动态添加按钮
     if (localStorage.getItem('current_username') === 'Aaa') addAdminButtons();
-    // 隐藏加载动画
-    const loader = document.getElementById('appLoader');
-    if (loader) loader.style.display = 'none';
+    // 隐藏加载动画（加 try 确保执行）
+    try { const appLoader = document.getElementById('appLoader'); if (appLoader) appLoader.style.display = 'none'; } catch(le) {}
   </script>
 </body>
 </html>
