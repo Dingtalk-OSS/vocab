@@ -690,10 +690,9 @@ app.post('/api/v1/translations/evaluate', async (req, res) => {
 // 排行榜：平均分（支持 ?limit=N 统计最近 N 条，?difficulty=N 按难度筛选）
 function parseDiffParam(val) {
   if (!val || val === '0') return { where: '', params: [] };
-  // 尝试数字匹配（L1-L6 存为数字 "1"-"6"），否则用原始字符串（CET4 等）
   const n = parseInt(val);
-  if (!isNaN(n)) return { where: 'AND l.difficulty = ?', params: [n.toString()] };
-  return { where: 'AND l.difficulty = ?', params: [val] };
+  if (!isNaN(n)) return { where: 'AND difficulty = ?', params: [n.toString()] };
+  return { where: 'AND difficulty = ?', params: [val] };
 }
 
 app.get('/api/v1/leaderboard/avg-score', (req, res) => {
@@ -709,7 +708,7 @@ app.get('/api/v1/leaderboard/avg-score', (req, res) => {
       FROM users u JOIN (
         SELECT id, user_id, score_total, created_at, difficulty, is_practice,
           ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY created_at DESC) as rn
-        FROM practice_logs WHERE is_practice = 0 ${difficulty > 0 ? 'AND difficulty = ?' : ''}
+        FROM practice_logs WHERE is_practice = 0 ${diffWhere}
       ) l ON u.id = l.user_id AND l.rn <= ?
       GROUP BY u.id HAVING COUNT(*) >= 3
       ORDER BY avg_score DESC LIMIT 20
@@ -739,7 +738,7 @@ app.get('/api/v1/leaderboard/avg-time', (req, res) => {
       FROM users u JOIN (
         SELECT id, user_id, time_spent, created_at, difficulty, is_practice,
           ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY created_at DESC) as rn
-        FROM practice_logs WHERE is_practice = 0 ${difficulty > 0 ? 'AND difficulty = ?' : ''}
+        FROM practice_logs WHERE is_practice = 0 ${diffWhere}
       ) l ON u.id = l.user_id AND l.rn <= ?
       GROUP BY u.id HAVING COUNT(*) >= 3
       ORDER BY avg_time ASC LIMIT 20

@@ -298,6 +298,7 @@
       <input type="text" id="authUsername" placeholder="用户名" style="max-width:300px;">
       <input type="password" id="authPassword" placeholder="密码" style="max-width:300px;">
       <select id="authRole" style="max-width:300px;">
+        <option value="">暂不选择</option>
         <option value="student">学生</option>
         <option value="teacher">教师</option>
       </select>
@@ -614,45 +615,54 @@
     </div>
   </div>
 
-  <!-- 管理后台弹窗 -->
+  <!-- 管理后台弹窗（全屏） -->
   <div id="adminPanelModal" class="modal-overlay" style="display:none;">
-    <div class="modal-card" style="max-width:550px;">
-      <button class="btn" id="adminPanelClose" style="position:absolute;top:14px;left:14px;padding:6px 14px;font-size:0.85rem;z-index:10;">← 返回</button>
-      <h4 style="margin-left:60px;">管理后台</h4>
-      <!-- 待审批老师 -->
-      <div style="border:1px solid var(--input-border); border-radius:14px; padding:14px; margin-bottom:12px;">
-        <div style="font-size:0.95rem; color:var(--text-primary); font-weight:500; margin-bottom:8px;">教师注册审批</div>
-        <div id="adminPendingTeachers" style="max-height:20vh; overflow-y:auto; font-size:0.85rem;"></div>
+    <div style="width:100vw;height:100vh;background:var(--bg-start);display:flex;flex-direction:column;overflow-y:auto;">
+      <div style="display:flex;align-items:center;gap:12px;padding:10px 16px;background:var(--card-bg);border-bottom:1px solid var(--input-border);position:sticky;top:0;z-index:10;flex-shrink:0;">
+        <button class="btn" id="adminPanelClose" style="padding:6px 14px;font-size:0.85rem;">← 返回</button>
+        <span style="font-size:1.1rem;font-weight:600;color:var(--text-primary);">管理员面板</span>
       </div>
-      <!-- 创建老师 -->
-      <div style="border:1px solid var(--input-border); border-radius:14px; padding:14px; margin-bottom:12px;">
-        <div style="font-size:0.95rem; color:var(--text-primary); font-weight:500; margin-bottom:8px;">新建老师</div>
-        <div style="display:flex; gap:6px; margin-bottom:6px;">
-          <input type="text" id="newTeacherName" placeholder="用户名" style="flex:2; min-height:auto; padding:8px 12px; font-size:0.85rem;">
-          <input type="text" id="newTeacherPwd" placeholder="密码" value="123456" style="flex:1; min-height:auto; padding:8px 12px; font-size:0.85rem;">
-          <input type="text" id="newTeacherSchool" placeholder="学校" style="flex:2; min-height:auto; padding:8px 12px; font-size:0.85rem;">
-          <button class="small-btn" id="addTeacherBtn">添加</button>
+      <div style="padding:16px;max-width:900px;margin:0 auto;width:100%;">
+        <!-- 板块一：常用功能 -->
+        <div id="sectionCommon" style="background:var(--card-bg);border:1px solid var(--input-border);border-radius:16px;padding:16px;margin-bottom:14px;">
+          <div style="font-size:1rem;font-weight:600;color:var(--text-primary);margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+            <span>常用功能</span>
+          </div>
+          <button class="btn w-full" id="changeDifficultyBtn2">切换难度</button>
+          <button class="btn w-full mt-8" id="wordBankBtn2">词库管理</button>
+          <button class="btn w-full mt-8" id="downloadBackupBtn2" onclick="downloadBackup()">下载备份</button>
+          <button class="btn w-full mt-8" id="uploadBackupBtn3" onclick="document.getElementById('backupFileInput2').click()">上传恢复</button>
+          <input type="file" id="backupFileInput2" accept=".json" style="display:none;">
         </div>
-        <div style="margin-top:6px;">
-          <textarea id="batchTeacherInput" placeholder="批量创建，每行：用户名,密码,学校&#10;如：zhang,123456,一中" style="width:100%; min-height:50px; padding:8px; font-size:0.85rem; background:var(--input-bg); border:1px solid var(--input-border); border-radius:8px; color:var(--text-primary); outline:none;"></textarea>
+        <!-- 板块二：教师管理 -->
+        <div id="sectionTeachers" style="background:var(--card-bg);border:1px solid var(--input-border);border-radius:16px;padding:16px;margin-bottom:14px;">
+          <div style="font-size:1rem;font-weight:600;color:var(--text-primary);margin-bottom:12px;">教师管理</div>
+          <!-- 待审批 -->
+          <div style="font-size:0.9rem;color:var(--text-secondary);margin-bottom:6px;">注册审批</div>
+          <div id="adminPendingTeachers" style="max-height:120px;overflow-y:auto;font-size:0.85rem;margin-bottom:10px;"></div>
+          <!-- 新建 -->
+          <div style="font-size:0.9rem;color:var(--text-secondary);margin-bottom:6px;">新建教师</div>
+          <div style="display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap;">
+            <input type="text" id="newTeacherName" placeholder="用户名" style="flex:2;min-width:80px;min-height:auto;padding:8px 12px;font-size:0.85rem;">
+            <input type="text" id="newTeacherPwd" placeholder="密码" value="123456" style="flex:1;min-width:60px;min-height:auto;padding:8px 12px;font-size:0.85rem;">
+            <input type="text" id="newTeacherSchool" placeholder="学校" style="flex:2;min-width:80px;min-height:auto;padding:8px 12px;font-size:0.85rem;">
+            <button class="small-btn" id="addTeacherBtn">添加</button>
+          </div>
+          <textarea id="batchTeacherInput" placeholder="批量创建（每行：用户名,密码,学校）&#10;如：zhang,123456,一中" style="width:100%;min-height:40px;padding:8px;font-size:0.85rem;background:var(--input-bg);border:1px solid var(--input-border);border-radius:8px;color:var(--text-primary);outline:none;"></textarea>
           <button class="small-btn" id="batchTeacherBtn" style="margin-top:4px;">批量创建</button>
+          <div id="teacherCreateStatus" style="font-size:0.8rem;margin-top:4px;"></div>
+          <!-- 列表 -->
+          <div style="font-size:0.9rem;color:var(--text-secondary);margin:10px 0 6px;">教师列表</div>
+          <div id="adminTeacherList" style="max-height:120px;overflow-y:auto;font-size:0.85rem;"></div>
         </div>
-        <div id="teacherCreateStatus" style="font-size:0.8rem; margin-top:4px;"></div>
-      </div>
-      <!-- 老师列表 -->
-      <div style="border:1px solid var(--input-border); border-radius:14px; padding:14px; margin-bottom:12px;">
-        <div style="font-size:0.95rem; color:var(--text-primary); font-weight:500; margin-bottom:8px;">教师管理</div>
-        <div id="adminTeacherList" style="max-height:20vh; overflow-y:auto; font-size:0.85rem;"></div>
-      </div>
-      <!-- 密码重置申请 -->
-      <div style="border:1px solid var(--input-border); border-radius:14px; padding:14px; margin-bottom:12px;">
-        <div style="font-size:0.95rem; color:var(--text-primary); font-weight:500; margin-bottom:8px;">密码重置申请</div>
-        <div id="adminPendingList" style="max-height:20vh; overflow-y:auto; font-size:0.85rem;"></div>
-      </div>
-      <!-- 注册用户 -->
-      <div style="border:1px solid var(--input-border); border-radius:14px; padding:14px;">
-        <div style="font-size:0.95rem; color:var(--text-primary); font-weight:500; margin-bottom:8px;">注册用户</div>
-        <div id="adminUserList" style="max-height:20vh; overflow-y:auto; font-size:0.85rem;"></div>
+        <!-- 板块三：管理权限 -->
+        <div id="sectionAdmin" style="background:var(--card-bg);border:1px solid var(--input-border);border-radius:16px;padding:16px;">
+          <div style="font-size:1rem;font-weight:600;color:var(--text-primary);margin-bottom:12px;">管理权限</div>
+          <div style="font-size:0.9rem;color:var(--text-secondary);margin-bottom:6px;">密码重置申请</div>
+          <div id="adminPendingList" style="max-height:100px;overflow-y:auto;font-size:0.85rem;margin-bottom:12px;"></div>
+          <div style="font-size:0.9rem;color:var(--text-secondary);margin-bottom:6px;">注册用户</div>
+          <div id="adminUserList" style="max-height:100px;overflow-y:auto;font-size:0.85rem;"></div>
+        </div>
       </div>
     </div>
   </div>
