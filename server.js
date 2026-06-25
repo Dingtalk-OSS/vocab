@@ -1266,6 +1266,99 @@ app.post('/api/v1/user/restore-data', (req, res) => {
   }
 })
 
+
+
+// 智能翻译提示词常量
+
+
+// 智能翻译
+app.post('/api/v1/ai/smart-translate', async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const apiKey = req.headers['x-api-key'];
+    if (!apiKey) return res.status(400).json({ error: '缺少 API Key' });
+    const platform = req.headers['x-api-platform'] || 'deepseek';
+    const customUrl = req.headers['x-api-custom-url'] || '';
+    const { text, standard, direction } = req.body;
+    if (!text) return res.status(400).json({ error: '请输入翻译内容' });
+    const std = ['cet4','cet6','kaoyan'].includes(standard) ? standard : 'cet4';
+    const systemPrompt = TRANSLATE_PROMPTS[std];
+    const userPrompt = (direction === 'en2zh' ? '请将以下英文翻译成中文：' : '请将以下中文翻译成英文：') + '\\n\\n' + text;
+    const result = await callAI(apiKey, [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt }
+    ], 0.3, platform, customUrl);
+    res.json(result);
+  } catch (e) {
+    if (e.message === '未登录') return res.status(401).json({ error: e.message });
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 作文出题
+app.post('/api/v1/ai/essay-topic', async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const apiKey = req.headers['x-api-key'];
+    if (!apiKey) return res.status(400).json({ error: '缺少 API Key' });
+    const platform = req.headers['x-api-platform'] || 'deepseek';
+    const customUrl = req.headers['x-api-custom-url'] || '';
+    const { type } = req.body;
+    const typeLabel = type === 'kaoyan' ? '考研英语' : type === 'cet6' ? '大学英语六级' : '大学英语四级';
+    const result = await callAI(apiKey, [
+      { role: 'system', content: '你是一位' + typeLabel + '作文出题专家。输出JSON格式：{"topic":"题目","requirements":"要求","tips":["要点1"],"background":"背景"}' },
+      { role: 'user', content: '请为' + typeLabel + '出一道作文题目' }
+    ], 0.7, platform, customUrl);
+    res.json(result);
+  } catch (e) {
+    if (e.message === '未登录') return res.status(401).json({ error: e.message });
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 作文批改
+app.post('/api/v1/ai/essay-grade', async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const apiKey = req.headers['x-api-key'];
+    if (!apiKey) return res.status(400).json({ error: '缺少 API Key' });
+    const platform = req.headers['x-api-platform'] || 'deepseek';
+    const customUrl = req.headers['x-api-custom-url'] || '';
+    const { essay, type } = req.body;
+    if (!essay) return res.status(400).json({ error: '请输入作文' });
+    const typeLabel = type === 'kaoyan' ? '考研英语' : type === 'cet6' ? '大学英语六级(CET-6)' : '大学英语四级(CET-4)';
+    const result = await callAI(apiKey, [
+      { role: 'system', content: '你是一位资深的' + typeLabel + '作文批改专家。输出JSON：{"score":"分数(0-100)","level":"等级","comments":"评语","issues":[{"type":"语法/词汇","description":"问题","suggestion":"建议"}],"annotated_text":"原文标注","sample":"范文"}' },
+      { role: 'user', content: '请批改以下' + typeLabel + '作文：\\n\\n' + essay }
+    ], 0.3, platform, customUrl);
+    res.json(result);
+  } catch (e) {
+    if (e.message === '未登录') return res.status(401).json({ error: e.message });
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// AI 对话（用于深入问答）
+app.post('/api/v1/ai/chat', async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const apiKey = req.headers['x-api-key'];
+    if (!apiKey) return res.status(400).json({ error: '缺少 API Key' });
+    const platform = req.headers['x-api-platform'] || 'deepseek';
+    const customUrl = req.headers['x-api-custom-url'] || '';
+    const { message, word, save } = req.body;
+    if (!message) return res.status(400).json({ error: '请输入内容' });
+    const result = await callAI(apiKey, [
+      { role: 'system', content: '你是一位英语学习助手，回答关于英语单词、语法、翻译的问题。回答简洁准确。只输出json：{"reply":"你的回答"}' },
+      { role: 'user', content: message }
+    ], 0.5, platform, customUrl);
+    res.json({ reply: result.reply || '好的' });
+  } catch (e) {
+    if (e.message === '未登录') return res.status(401).json({ error: e.message });
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.get('/api/v1/health', (req, res) => res.json({ status: 'ok' }));
 
 const PORT = process.env.PORT || 3000;
