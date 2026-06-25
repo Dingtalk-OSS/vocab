@@ -591,6 +591,41 @@ app.post('/api/v1/words/generate', async (req, res) => {
       }
     }
 
+    // 兜底：词库和 AI 都失败时用硬编码单词
+    if (!resultWord) {
+      var fallbackWords = {
+        L1: ['hello','goodbye','thank','please','sorry','yes','no','help','water','food','book','friend','school','home'],
+        L2: ['information','important','different','beautiful','wonderful','temperature','holiday','traffic','service','language'],
+        L3: ['environment','education','technology','development','government','communication','opportunity','responsibility'],
+        L4: ['analysis','hypothesis','methodology','perspective','theoretical','empirical','significant','evaluation'],
+        L5: ['metaphor','allegory','narrative','symbolism','paradox','eloquence','nostalgia','melancholy'],
+        L6: ['juxtaposition','idiosyncrasy','ephemeral','ubiquitous','dichotomy','amalgamation','extrapolate'],
+        CET4: ['abandon','ability','abroad','absence','absolute','abstract','academic','access','achieve','acknowledge'],
+        CET6: ['controversy','criterion','crucial','cultivate','curriculum','dedicate','dilemma','diminish','diploma'],
+        kaoyan: ['abolish','absurd','abundance','adhere','allege','alleviate','amplify','ascertain','aspiration','authentic'],
+        MS: ['apple','ball','cat','dog','egg','fish','green','happy','ice','jump','kite','lion','milk','name','orange'],
+        HS: ['ability','absorb','access','achieve','acquire','adapt','adequate','adjust','admit','adopt','advance','advantage'],
+        TOEFL: ['biology','chemistry','economics','environment','geology','hypothesis','laboratory','molecule','phenomenon','synthesis'],
+        IELTS: ['academic','analysis','assessment','conclusion','correlation','demonstrate','evaluate','identify','interpret','validity']
+      };
+      var fbList = fallbackWords[diffStr];
+      if (fbList && fbList.length) {
+        // 选一个用户还没练过的
+        for (var fbWord of fbList) {
+          var dup = db.prepare('SELECT id FROM user_practiced_words WHERE user_id=? AND word=? AND difficulty=?').get(userId, fbWord, diffStr);
+          if (!dup) { resultWord = fbWord; break; }
+        }
+        if (!resultWord) resultWord = fbList[0];
+      }
+      if (resultWord) {
+        // 用 AI 生成音标释义
+        result = await callAI(apiKey, [
+          { role:'system', content:'你是一个英语单词信息提供者，只输出JSON。' },
+          { role:'user', content: '提供以下单词的详细信息：'+resultWord+'。输出音标、中文释义（简短）、延展释义。JSON：{"word":""'+resultWord+'","phonetic":"...","meaning":"...","extended":"..."}' }
+        ], 1.2, platform, customUrl);
+      }
+    }
+
     // 有 resultWord 但还没调用 AI 获取信息（词库抽的词需要生成音标释义）
     if (!result) {
       result = await callAI(apiKey, [
@@ -929,6 +964,218 @@ app.get('/api/v1/user/export-data', (req, res) => {
     var favorites = db.prepare('SELECT user_id, word, data FROM favorites').all(); // if exists
     var memorized = db.prepare('SELECT username, word FROM memorized_words JOIN users ON user_id = users.id').all();
     res.json({ users: allUsers, practice_logs: logs, challenges, exam_results: examResults, exam_questions: examQuestions, user_generated: userGenerated, user_practiced: userPracticed });
+  } catch (e) {
+    if (e.message === '未登录') return res.status(401).json({ error: e.message });
+    res.status(500).json({ error: e.message });
+  }
+});
+
+
+// 管理员：词库列表
+app.get('/api/v1/admin/words/list', (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const user = db.prepare('SELECT username FROM users WHERE id = ?').get(userId);
+    if (user?.username !== 'Aaa') return res.status(403).json({ error: '无权限' });
+    const diff = req.query.difficulty || '';
+    const search = req.query.search || '';
+    let sql = 'SELECT word, difficulty, created_at FROM word_bank';
+    const params = [];
+    const wheres = [];
+    if (diff) { wheres.push('difficulty = ?'); params.push(diff); }
+    if (search) { wheres.push('word LIKE ?'); params.push('%' + search + '%'); }
+    if (wheres.length) sql += ' WHERE ' + wheres.join(' AND ');
+    sql += ' ORDER BY word LIMIT 500';
+    const rows = db.prepare(sql).all(...params);
+    res.json(rows);
+  } catch (e) {
+    if (e.message === '未登录') return res.status(401).json({ error: e.message });
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 管理员：添加单词
+app.post('/api/v1/admin/words/add', (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const user = db.prepare('SELECT username FROM users WHERE id = ?').get(userId);
+    if (user?.username !== 'Aaa') return res.status(403).json({ error: '无权限' });
+    const { word, difficulties } = req.body;
+    if (!word || !difficulties || !difficulties.length) return res.status(400).json({ error: '参数不完整' });
+    const validDiffs = ['L1','L2','L3','L4','L5','L6','CET4','CET6','kaoyan','MS','HS','TOEFL','IELTS'];
+    const toAdd = difficulties.filter(function(d){return validDiffs.indexOf(d) > -1});
+    if (!toAdd.length) return res.status(400).json({ error: '无效的难度标签' });
+    var added = 0, skipped = 0;
+    var insert = db.prepare('INSERT OR IGNORE INTO word_bank (word, difficulty, added_by) VALUES (?, ?, ?)');
+    toAdd.forEach(function(d){
+      var r = insert.run(word.toLowerCase().trim(), d, 'Aaa');
+      if (r.changes) added++; else skipped++;
+    });
+    res.json({ added, skipped, word });
+  } catch (e) {
+    if (e.message === '未登录') return res.status(401).json({ error: e.message });
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 管理员：批量添加单词
+app.post('/api/v1/admin/words/batch', (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const user = db.prepare('SELECT username FROM users WHERE id = ?').get(userId);
+    if (user?.username !== 'Aaa') return res.status(403).json({ error: '无权限' });
+    const { words, difficulty } = req.body;
+    if (!words || !words.length || !difficulty) return res.status(400).json({ error: '参数不完整' });
+    const validDiffs = ['L1','L2','L3','L4','L5','L6','CET4','CET6','kaoyan','MS','HS','TOEFL','IELTS'];
+    if (validDiffs.indexOf(difficulty) === -1) return res.status(400).json({ error: '无效的难度标签' });
+    var added = 0, skipped = 0;
+    var insert = db.prepare('INSERT OR IGNORE INTO word_bank (word, difficulty, added_by) VALUES (?, ?, ?)');
+    words.forEach(function(w){
+      var r = insert.run(w.toLowerCase().trim(), difficulty, 'Aaa');
+      if (r.changes) added++; else skipped++;
+    });
+    res.json({ added, skipped, difficulty });
+  } catch (e) {
+    if (e.message === '未登录') return res.status(401).json({ error: e.message });
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 管理员：待审批老师
+app.get('/api/v1/admin/pending-teachers', (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const user = db.prepare('SELECT username FROM users WHERE id = ?').get(userId);
+    if (user.username !== 'Aaa') return res.status(403).json({ error: '无权限' });
+    var rows = db.prepare("SELECT id, username, school, created_at FROM users WHERE role = 'teacher' AND status = 'pending' ORDER BY created_at DESC").all();
+    res.json(rows);
+  } catch (e) {
+    if (e.message === '未登录') return res.status(401).json({ error: e.message });
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 管理员：审批老师
+app.post('/api/v1/admin/approve-teacher', (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const user = db.prepare('SELECT username FROM users WHERE id = ?').get(userId);
+    if (user.username !== 'Aaa') return res.status(403).json({ error: '无权限' });
+    const { targetId, action } = req.body;
+    if (action === 'approve') {
+      db.prepare("UPDATE users SET status = 'active' WHERE id = ? AND role = 'teacher'").run(targetId);
+      res.json({ success: true, message: '已批准' });
+    } else {
+      db.prepare("UPDATE users SET status = 'rejected' WHERE id = ? AND role = 'teacher'").run(targetId);
+      res.json({ success: true, message: '已拒绝' });
+    }
+  } catch (e) {
+    if (e.message === '未登录') return res.status(401).json({ error: e.message });
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 管理员：批量创建老师
+app.post('/api/v1/admin/create-teachers', async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const user = db.prepare('SELECT username FROM users WHERE id = ?').get(userId);
+    if (user.username !== 'Aaa') return res.status(403).json({ error: '无权限' });
+    const { teachers } = req.body;
+    if (!teachers || !teachers.length) return res.status(400).json({ error: '请提供老师信息' });
+    var added = 0, skipped = 0;
+    for (var t of teachers) {
+      var uname = (t.username || '').trim().toLowerCase();
+      var pwd = t.password || '123456';
+      var school = t.school || '';
+      if (!uname) { skipped++; continue; }
+      try {
+        var hash = await bcrypt.hash(pwd, 10);
+        db.prepare("INSERT INTO users (username, password_hash, role, status, school) VALUES (?, ?, 'teacher', 'active', ?)").run(uname, hash, school);
+        added++;
+      } catch(e2) { skipped++; }
+    }
+    res.json({ added, skipped });
+  } catch (e) {
+    if (e.message === '未登录') return res.status(401).json({ error: e.message });
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 管理员：管理老师（禁用/启用）
+app.post('/api/v1/admin/manage-teacher', async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const user = db.prepare('SELECT username FROM users WHERE id = ?').get(userId);
+    if (user.username !== 'Aaa') return res.status(403).json({ error: '无权限' });
+    const { targetId, action } = req.body;
+    if (action === 'toggle-status') {
+      var t = db.prepare('SELECT status FROM users WHERE id = ?').get(targetId);
+      var newStatus = t.status === 'disabled' ? 'active' : 'disabled';
+      db.prepare('UPDATE users SET status = ? WHERE id = ?').run(newStatus, targetId);
+      res.json({ success: true, message: newStatus === 'disabled' ? '已禁用' : '已启用' });
+    } else {
+      res.status(400).json({ error: '无效操作' });
+    }
+  } catch (e) {
+    if (e.message === '未登录') return res.status(401).json({ error: e.message });
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 管理员：所有老师列表
+app.get('/api/v1/admin/teacher-list', (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const user = db.prepare('SELECT username FROM users WHERE id = ?').get(userId);
+    if (user.username !== 'Aaa') return res.status(403).json({ error: '无权限' });
+    var rows = db.prepare("SELECT u.id, u.username, u.school, u.status, u.created_at, (SELECT COUNT(*) FROM classes WHERE teacher_id = u.id AND active=1) as class_count FROM users u WHERE u.role = 'teacher' ORDER BY u.created_at DESC").all();
+    res.json(rows);
+  } catch (e) {
+    if (e.message === '未登录') return res.status(401).json({ error: e.message });
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 管理员：查看注册用户列表
+app.get('/api/v1/auth/admin/users', (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const user = db.prepare('SELECT username FROM users WHERE id = ?').get(userId);
+    if (user.username !== 'Aaa') return res.status(403).json({ error: '无权限' });
+    var rows = db.prepare('SELECT id, username, display_name, role, created_at FROM users ORDER BY id').all();
+    res.json(rows);
+  } catch (e) {
+    if (e.message === '未登录') return res.status(401).json({ error: e.message });
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 管理员：密码重置申请列表
+app.get('/api/v1/auth/admin/pending-resets', (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const user = db.prepare('SELECT username FROM users WHERE id = ?').get(userId);
+    if (user.username !== 'Aaa') return res.status(403).json({ error: '无权限' });
+    var rows = db.prepare('SELECT id, username, created_at FROM password_resets WHERE status = ? ORDER BY created_at DESC').all('pending');
+    res.json(rows);
+  } catch (e) {
+    if (e.message === '未登录') return res.status(401).json({ error: e.message });
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 管理员：重置密码
+app.post('/api/v1/auth/admin/reset-password', (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const user = db.prepare('SELECT username FROM users WHERE id = ?').get(userId);
+    if (user.username !== 'Aaa') return res.status(403).json({ error: '无权限' });
+    const { target_username, request_id } = req.body;
+    const hash = bcrypt.hashSync('123456', 10);
+    db.prepare('UPDATE users SET password_hash = ? WHERE username = ?').run(hash, target_username);
+    if (request_id) { db.prepare('UPDATE password_resets SET status = ? WHERE id = ?').run('resolved', request_id); }
+    res.json({ success: true, message: '密码已重置为 123456' });
   } catch (e) {
     if (e.message === '未登录') return res.status(401).json({ error: e.message });
     res.status(500).json({ error: e.message });
