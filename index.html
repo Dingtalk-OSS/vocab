@@ -11,7 +11,7 @@
       --text-secondary: rgba(255,255,255,0.6); --accent: #ffb6c1;
       --accent-light: rgba(255,182,193,0.25); --accent-strong: #ff7b9c;
       --input-bg: rgba(255,255,255,0.08); --input-border: rgba(255,255,255,0.15);
-      --font-size-word: clamp(3rem, 10vw, 5rem);
+      --font-size-word: clamp(3.5rem, 13vw, 6.5rem);
     }
     body.theme-pink-light { --bg-start:#fcf0f3; --bg-end:#fff0f3; --card-bg:rgba(255,255,255,0.75); --text-primary:#3d2e3a; --text-secondary:#7a6a75; --accent:#e75480; --accent-light:rgba(231,84,128,0.18); --input-bg:rgba(255,255,255,0.8); --input-border:rgba(231,84,128,0.3); }
     body.theme-blue-dark { --bg-start:#10141c; --bg-end:#1a1f2e; --card-bg:rgba(255,255,255,0.05); --text-primary:rgba(220,230,255,0.92); --text-secondary:rgba(180,200,230,0.6); --accent:#a8d8ea; --accent-light:rgba(168,216,234,0.25); --input-bg:rgba(200,220,255,0.08); --input-border:rgba(168,216,234,0.25); }
@@ -350,7 +350,6 @@
             </div>
             <div id="wordLoader" class="loader" style="display:none;"></div>
             <button class="memorized-btn" id="markMemorizedBtn">标记为已背</button>
-            <button class="memorized-btn" id="deepQBtn" style="margin-top:6px;">深入问答 (10次)</button>
           </div>
         </div>
         <div class="toggle-area">
@@ -628,8 +627,8 @@
           <div style="font-size:1rem;font-weight:600;color:var(--text-primary);margin-bottom:12px;display:flex;align-items:center;gap:8px;">
             <span>常用功能</span>
           </div>
-          <button class="btn w-full" id="changeDifficultyBtn2">切换难度</button>
-          <button class="btn w-full mt-8" id="wordBankBtn2">词库管理</button>
+          <button class="btn w-full" id="changeDifficultyBtn2" onclick="this.closest('#adminPanelModal').style.display='none';document.getElementById('diffPanel').style.display='flex';document.getElementById('mainUI').style.display='none';">切换难度</button>
+          <button class="btn w-full mt-8" id="wordBankBtn2" onclick="this.closest('#adminPanelModal').style.display='none';document.getElementById('wordBankModal').style.display='flex';loadWordBankList();">词库管理</button>
           <button class="btn w-full mt-8" id="downloadBackupBtn2" onclick="downloadBackup()">下载备份</button>
           <button class="btn w-full mt-8" id="uploadBackupBtn3" onclick="document.getElementById('backupFileInput2').click()">上传恢复</button>
           <input type="file" id="backupFileInput2" accept=".json" style="display:none;">
@@ -1024,6 +1023,10 @@
         <button class="btn w-full mt-8" id="wrongQBtn">错题本</button>
       </div>
       <!-- AI 服务 -->
+      <div style="background:var(--card-bg);border:1px solid var(--input-border);border-radius:16px;padding:16px;margin-bottom:14px;">
+        <button class="btn primary w-full" id="changeDifficultyBtn3" style="font-size:1.1rem;padding:16px;" onclick="document.getElementById('settingsDrawer').style.display='none';document.getElementById('diffPanel').style.display='flex';document.getElementById('mainUI').style.display='none';">切换难度</button>
+      </div>
+
       <div style="background:var(--card-bg);border:1px solid var(--input-border);border-radius:16px;padding:16px;margin-bottom:14px;">
         <div style="font-size:1rem;font-weight:600;color:var(--text-primary);margin-bottom:12px;">AI 服务</div>
         <button class="btn w-full" id="aiToolsBtn">AI 工具</button>
@@ -1615,7 +1618,8 @@
           <div class="diff-details" id="diffDetails" style="display:none;">${diffsHtml}</div>
           <button class="fav-btn" id="favBtn">收藏</button>
           <div style="margin-top:4px;"></div>
-          <button class="btn primary" id="nextWordBtn" style="margin-top:4px;">下一个单词</button>`;
+          <button class="btn primary" id="nextWordBtn" style="margin-top:4px;">下一个单词</button>
+          <button class="btn" id="deepQBtn2" style="margin-top:8px; font-size:0.9rem;">深入问答 (10次)</button>`;
         $('toggleDetails').addEventListener('click', () => {
           $('diffDetails').style.display = $('diffDetails').style.display === 'none' ? 'block' : 'none';
           $('toggleDetails').textContent = $('diffDetails').style.display === 'none' ? '查看详细差异' : '收起差异';
@@ -1631,6 +1635,14 @@
           localStorage.setItem(userKey('vocab_favorites'), JSON.stringify(favorites));
         });
         $('nextWordBtn').addEventListener('click', () => { loadNewWord(); });
+        var dqBtn2 = document.getElementById('deepQBtn2');
+        if (dqBtn2) dqBtn2.onclick = function() {
+          if (!currentWordData) return alert('请先加载一个单词');
+          $('deepQModal').style.display = 'flex';
+          $('deepQRemaining').textContent = '剩余 ' + (10 - deepQCount) + ' 次';
+          $('deepQMessages').innerHTML = '<div class="empty-state">关于 "'+currentWordData.word+'" 的问答（剩余 '+(10-deepQCount)+' 次）</div>';
+          $('deepQInput').value = '';
+        };
         isSubmitted = true; $('submitBtn').disabled = true; // 批改后禁用
       } catch(e) { $('resultArea').innerHTML = `<div class="error-text">${e.message}</div>`; $('submitBtn').disabled = false; }
     });
@@ -2421,13 +2433,18 @@
 
     // ==== 深入问答（限10次） ====
     let deepQCount = 0;
-    $('deepQBtn').addEventListener('click', () => {
-      if (!currentWordData) return alert('请先加载一个单词');
-      $('deepQModal').style.display = 'flex';
-      $('deepQRemaining').textContent = '剩余 ' + (10 - deepQCount) + ' 次';
-      $('deepQMessages').innerHTML = '<div class="empty-state">关于 "'+currentWordData.word+'" 的问答（剩余 '+(10-deepQCount)+' 次）</div>';
-      $('deepQInput').value = '';
-    });
+    // Settings 深入问答 button handler
+    var sDQB = document.getElementById('deepQBtn2');
+    if (sDQB && !sDQB.getAttribute('data-handler-set')) {
+      sDQB.setAttribute('data-handler-set', '1');
+      sDQB.onclick = function() {
+        if (!currentWordData) return alert('请先加载一个单词');
+        $('deepQModal').style.display = 'flex';
+        $('deepQRemaining').textContent = '剩余 ' + (10 - deepQCount) + ' 次';
+        $('deepQMessages').innerHTML = '<div class="empty-state">关于 "'+currentWordData.word+'" 的问答（剩余 '+(10-deepQCount)+' 次）</div>';
+        $('deepQInput').value = '';
+      };
+    }
     $('deepQClose').addEventListener('click', () => $('deepQModal').style.display = 'none');
     $('deepQSend').addEventListener('click', async () => {
       const msg = $('deepQInput').value.trim();
