@@ -364,7 +364,7 @@ app.post('/api/v1/auth/register', async (req, res) => {
     rateLimit('reg:' + ip, 3, 3600000); // 每 IP 每小时最多注册 3 次
     const username = sanitize(req.body.username || '');
     const password = req.body.password || '';
-    const role = req.body.role === 'teacher' ? 'teacher' : 'student';
+    const role = ['teacher','student'].includes(req.body.role) ? req.body.role : '';
     if (!username || !password) return res.status(400).json({ error: '用户名和密码不能为空' });
     validateUsername(username);
     if (password.length < 4) return res.status(400).json({ error: '密码至少 4 个字符' });
@@ -405,10 +405,12 @@ app.post('/api/v1/auth/login', async (req, res) => {
     if (!valid) return res.status(401).json({ error: '用户名或密码错误' });
     if (user.status === 'pending') return res.status(403).json({ error: '账号待管理员审批，请稍后登录' });
     if (user.status === 'disabled') return res.status(403).json({ error: '账号已被禁用' });
+    var loginRole = req.body.role || '';
+    if (loginRole && loginRole !== (user.role || '')) return res.status(403).json({ error: '登录身份与注册身份不匹配' });
     const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' });
     // 记录登录
     try { db.prepare('INSERT INTO login_logs (user_id, ip) VALUES (?, ?)').run(user.id, ip); } catch(e) {}
-    res.json({ token, userId: user.id, username: user.username, role: user.role || 'student', school: user.school || '' });
+    res.json({ token, userId: user.id, username: user.username, role: user.role || '', school: user.school || '' });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

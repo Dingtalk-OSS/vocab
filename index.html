@@ -992,104 +992,95 @@
       <button class="btn" id="drawerCloseBtn" style="padding:6px 14px;font-size:0.85rem;">← 返回</button>
       <span style="font-size:1.1rem;font-weight:600;color:var(--text-primary);">设置</span><span class="user-role-badge" style="font-size:0.75rem;color:var(--accent);background:var(--accent-light);padding:2px 10px;border-radius:10px;margin-left:8px;"></span>
     </div>
-    <div style="padding:16px;max-width:800px;margin:0 auto;width:100%;">
-      <!-- 外观 -->
-      <div style="background:var(--card-bg);border:1px solid var(--input-border);border-radius:16px;padding:16px;margin-bottom:14px;">
-        <div style="font-size:1rem;font-weight:600;color:var(--text-primary);margin-bottom:12px;">外观</div>
-        <div class="field"><label>主题</label>
-          <select id="themeSelect">
-            <option value="pink-dark">粉马卡龙(深)</option>
-            <option value="pink-light">粉马卡龙(浅)</option>
-            <option value="blue-dark">蓝马卡龙(深)</option>
-            <option value="blue-light">蓝马卡龙(浅)</option>
-          </select>
-        </div>
-      </div>
-      <!-- 学习 -->
-      <div style="background:var(--card-bg);border:1px solid var(--input-border);border-radius:16px;padding:16px;margin-bottom:14px;">
-        <div style="font-size:1rem;font-weight:600;color:var(--text-primary);margin-bottom:12px;">学习</div>
-        <div class="field" style="flex-direction:row;align-items:center;justify-content:space-between;margin-bottom:8px;">
-          <label style="margin:0;cursor:pointer;">翻译计时器</label>
-          <label class="switch-track" id="timerToggleTrack" style="position:relative;width:44px;height:24px;">
-            <input type="checkbox" id="timerToggle">
-            <span class="switch-knob" style="width:17px;height:17px;top:2.5px;left:2.5px;"></span>
-          </label>
-        </div>
-        <div class="text-secondary" style="font-size:0.8rem;margin-bottom:10px;">从显示中文句子开始计时</div>
-        <button class="btn w-full mt-8" id="changeDifficultyBtn">切换难度</button>
-        <button class="btn w-full mt-8" id="openMemorizedBtn">管理已背单词</button>
-        <button class="btn w-full mt-8" id="openFavoritesBtn">查看收藏单词</button>
-        <button class="btn w-full mt-8" id="examBtn">等级考试</button>
-        <button class="btn w-full mt-8" id="examHistoryBtn">考试记录</button>
-        <button class="btn w-full mt-8" id="wrongQBtn">错题本</button>
-      </div>
-      <!-- AI 服务 -->
-      <div style="background:var(--card-bg);border:1px solid var(--input-border);border-radius:16px;padding:16px;margin-bottom:14px;">
-        <button class="btn primary w-full" id="changeDifficultyBtn3" style="font-size:1.1rem;padding:16px;" onclick="document.getElementById('settingsDrawer').style.display='none';document.getElementById('diffPanel').style.display='flex';document.getElementById('mainUI').style.display='none';">切换难度</button>
-      </div>
+    <div style="padding:20px 30px;max-width:1400px;margin:0 auto;width:100%;display:grid;grid-template-columns:repeat(auto-fit,minmax(350px,1fr));gap:16px;">
 
-      <div style="background:var(--card-bg);border:1px solid var(--input-border);border-radius:16px;padding:16px;margin-bottom:14px;">
-        <div style="font-size:1rem;font-weight:600;color:var(--text-primary);margin-bottom:12px;">AI 服务</div>
-        <button class="btn w-full" id="aiToolsBtn">AI 工具</button>
-        <button class="btn w-full mt-8" id="smartTranslateBtn2">智能翻译</button>
-        <div class="field" style="margin-top:12px;"><label>API 平台</label>
-          <select id="apiPlatformSelect">
-            <option value="deepseek">DeepSeek</option>
-            <option value="qwen">通义千问 (Qwen)</option>
-            <option value="glm">智谱 (GLM)</option>
-            <option value="moonshot">月之暗面 (Moonshot)</option>
-            <option value="yi">零一万物 (Yi)</option>
-            <option value="siliconflow">SiliconFlow</option>
-            <option value="custom">自定义地址</option>
-          </select>
-        </div>
-        <div class="field" id="customUrlField" style="display:none;"><label>自定义 API 地址</label>
-          <input type="text" id="customApiUrl" placeholder="https://your-api.com/v1/chat/completions">
-        </div>
-        <div class="field"><label>模型</label>
-          <select id="settingsModelSelect"><option value="deepseek-chat">deepseek-chat</option></select>
-          <input type="text" id="settingsModelCustom" placeholder="输入自定义模型名称" style="display:none;margin-top:6px;">
-        </div>
-        <div class="field"><label>API Key</label>
-          <input type="password" id="settingsApiKey" placeholder="sk-...">
-        </div>
-        <button class="btn primary w-full" id="saveApiSettingsBtn">保存 API 设置</button>
-        <div id="apiSettingsStatus" style="font-size:0.85rem;color:var(--accent);margin-top:8px;text-align:center;"></div>
-        <div class="field" style="flex-direction:row;align-items:center;justify-content:space-between;margin-top:12px;">
-          <label style="margin:0;cursor:pointer;">不参与考试排行</label>
-          <label class="switch-track" id="examOptOutTrack" style="position:relative;width:44px;height:24px;">
-            <input type="checkbox" id="examOptOutCheckbox">
-            <span class="switch-knob" style="width:17px;height:17px;top:2.5px;left:2.5px;"></span>
-          </label>
-        </div>
-      </div>
-      <!-- 数据排行 -->
-      <div style="background:var(--card-bg);border:1px solid var(--input-border);border-radius:16px;padding:16px;margin-bottom:14px;">
-        <div style="font-size:1rem;font-weight:600;color:var(--text-primary);margin-bottom:12px;">数据排行</div>
-        <button class="btn w-full" id="showHistoryBtn">练习历史</button>
-        <button class="btn w-full mt-8" id="showLeaderboardBtn">排行榜</button>
-      </div>
-      <!-- 班级 -->
-      <div id="classSection" style="background:var(--card-bg);border:1px solid var(--input-border);border-radius:16px;padding:16px;margin-bottom:14px;">
-        <div style="font-size:1rem;font-weight:600;color:var(--text-primary);margin-bottom:12px;">班级</div>
-        <button class="btn w-full" id="joinClassBtn">加入班级</button>
-        <button class="btn w-full mt-8" id="myClassesBtn">我的班级</button>
-        <button class="btn w-full mt-8" id="classLeaderboardBtn">班级排行</button>
-        <button class="btn w-full mt-8" id="createClassBtn" style="display:none;">创建班级</button>
-      </div>
-      <!-- 账户 -->
-      <div style="background:var(--card-bg);border:1px solid var(--input-border);border-radius:16px;padding:16px;margin-bottom:14px;">
-        <div style="font-size:1rem;font-weight:600;color:var(--text-primary);margin-bottom:12px;">账户</div>
-        <button class="btn w-full" id="profileBtn">个人资料</button>
-        <button class="btn w-full mt-8" id="changePasswordBtn">修改密码</button>
-        <button class="btn w-full mt-8" id="loginHistoryBtn">登录记录</button>
-        <div id="adminButtons" style="margin-top:10px;display:none;"></div>
-        <button class="btn w-full mt-8" id="logoutBtn">退出登录</button>
-        <div id="backupStatus" style="font-size:0.8rem;color:var(--text-secondary);margin-top:6px;text-align:center;"></div>
-      </div>
+  <!-- 学习 -->
+  <div style="background:var(--card-bg);border:1px solid var(--input-border);border-radius:20px;padding:20px;">
+    <div style="font-size:1.1rem;font-weight:700;color:var(--text-primary);margin-bottom:16px;border-bottom:2px solid var(--accent-light);padding-bottom:8px;">学习</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;">
+      <button class="btn" id="changeDifficultyBtn3" style="flex:1;min-width:100px;padding:10px;font-size:0.85rem;" onclick="var d=document.getElementById('settingsDrawer');d.style.display='none';document.getElementById('diffPanel').style.display='flex';document.getElementById('mainUI').style.display='none';">切换难度</button>
+      <button class="btn" id="openMemorizedBtn" style="flex:1;min-width:100px;padding:10px;font-size:0.85rem;">已背单词</button>
+      <button class="btn" id="openFavoritesBtn" style="flex:1;min-width:100px;padding:10px;font-size:0.85rem;">收藏</button>
+      <button class="btn" id="examBtn" style="flex:1;min-width:100px;padding:10px;font-size:0.85rem;">等级考试</button>
+      <button class="btn" id="examHistoryBtn" style="flex:1;min-width:100px;padding:10px;font-size:0.85rem;">考试记录</button>
+      <button class="btn" id="wrongQBtn" style="flex:1;min-width:100px;padding:10px;font-size:0.85rem;">错题本</button>
+      <button class="btn" id="showHistoryBtn" style="flex:1;min-width:100px;padding:10px;font-size:0.85rem;">练习历史</button>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding-top:10px;border-top:1px solid var(--input-border);">
+      <span style="font-size:0.85rem;color:var(--text-secondary);">翻译计时器</span>
+      <label class="switch-track" id="timerToggleTrack" style="position:relative;width:44px;height:24px;">
+        <input type="checkbox" id="timerToggle"><span class="switch-knob" style="width:17px;height:17px;top:2.5px;left:2.5px;"></span>
+      </label>
     </div>
   </div>
-  <div class="gear-btn" id="gearBtn" style="display:none;">设置</div>
+
+  <!-- AI 服务 -->
+  <div style="background:var(--card-bg);border:1px solid var(--input-border);border-radius:20px;padding:20px;">
+    <div style="font-size:1.1rem;font-weight:700;color:var(--text-primary);margin-bottom:16px;border-bottom:2px solid var(--accent-light);padding-bottom:8px;">AI 服务</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
+      <button class="btn" id="smartTranslateBtn2" style="flex:1;min-width:80px;padding:10px;font-size:0.85rem;">智能翻译</button>
+      <button class="btn" id="essayGradeBtn2" style="flex:1;min-width:80px;padding:10px;font-size:0.85rem;">作文批改</button>
+      <button class="btn" id="deepQBtn2" style="flex:1;min-width:80px;padding:10px;font-size:0.85rem;">深入问答</button>
+    </div>
+    <div style="background:var(--input-bg);border-radius:12px;padding:12px;">
+      <div class="field"><label style="font-size:0.8rem;">API 平台</label>
+        <select id="apiPlatformSelect"><option value="deepseek">DeepSeek</option><option value="qwen">Qwen</option><option value="glm">GLM</option><option value="moonshot">Moonshot</option><option value="yi">Yi</option><option value="siliconflow">SiliconFlow</option><option value="custom">自定义</option></select>
+      </div>
+      <div class="field" id="customUrlField" style="display:none;"><label style="font-size:0.8rem;">自定义 API 地址</label><input type="text" id="customApiUrl" placeholder="https://..." style="font-size:0.85rem;"></div>
+      <div class="field"><label style="font-size:0.8rem;">模型</label><select id="settingsModelSelect"><option value="deepseek-chat">deepseek-chat</option></select><input type="text" id="settingsModelCustom" placeholder="自定义" style="display:none;font-size:0.85rem;margin-top:4px;"></div>
+      <div class="field"><label style="font-size:0.8rem;">API Key</label><input type="password" id="settingsApiKey" placeholder="sk-..." style="font-size:0.85rem;"></div>
+      <button class="btn primary" id="saveApiSettingsBtn" style="width:100%;padding:8px;font-size:0.85rem;margin-top:4px;">保存</button>
+      <div id="apiSettingsStatus" style="font-size:0.8rem;margin-top:4px;text-align:center;"></div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;">
+      <span style="font-size:0.85rem;color:var(--text-secondary);">不参与考试排行</span>
+      <label class="switch-track" id="examOptOutTrack" style="position:relative;width:44px;height:24px;">
+        <input type="checkbox" id="examOptOutCheckbox"><span class="switch-knob" style="width:17px;height:17px;top:2.5px;left:2.5px;"></span>
+      </label>
+    </div>
+  </div>
+
+  <!-- 排行榜 -->
+  <div style="background:var(--card-bg);border:1px solid var(--input-border);border-radius:20px;padding:20px;">
+    <div style="font-size:1.1rem;font-weight:700;color:var(--text-primary);margin-bottom:16px;border-bottom:2px solid var(--accent-light);padding-bottom:8px;">排行榜</div>
+    <button class="btn w-full" id="showLeaderboardBtn">个人排行</button>
+    <button class="btn w-full mt-8" id="showClassLeaderboardBtn">班级排行</button>
+  </div>
+
+  <!-- 班级 -->
+  <div style="background:var(--card-bg);border:1px solid var(--input-border);border-radius:20px;padding:20px;">
+    <div style="font-size:1.1rem;font-weight:700;color:var(--text-primary);margin-bottom:16px;border-bottom:2px solid var(--accent-light);padding-bottom:8px;">班级</div>
+    <button class="btn w-full" id="joinClassBtn">加入班级</button>
+    <button class="btn w-full mt-8" id="myClassesBtn">我的班级</button>
+    <button class="btn w-full mt-8" id="createClassBtn" style="display:none;">创建班级</button>
+  </div>
+
+  <!-- 个人 -->
+  <div style="background:var(--card-bg);border:1px solid var(--input-border);border-radius:20px;padding:20px;">
+    <div style="font-size:1.1rem;font-weight:700;color:var(--text-primary);margin-bottom:16px;border-bottom:2px solid var(--accent-light);padding-bottom:8px;">个人</div>
+    <button class="btn w-full" id="profileBtn">个人主页</button>
+    <button class="btn w-full mt-8" id="changePasswordBtn">修改密码</button>
+    <button class="btn w-full mt-8" id="loginHistoryBtn">登录记录</button>
+    <div id="adminButtons" style="margin-top:10px;display:none;"></div>
+    <button class="btn w-full mt-8" id="logoutBtn">退出登录</button>
+    <div id="backupStatus" style="font-size:0.8rem;color:var(--text-secondary);margin-top:6px;text-align:center;"></div>
+  </div>
+
+  <!-- 外观 -->
+  <div style="background:var(--card-bg);border:1px solid var(--input-border);border-radius:20px;padding:20px;">
+    <div style="font-size:1.1rem;font-weight:700;color:var(--text-primary);margin-bottom:16px;border-bottom:2px solid var(--accent-light);padding-bottom:8px;">外观</div>
+    <div class="field"><label>主题</label>
+      <select id="themeSelect" style="width:100%;padding:10px;border-radius:12px;border:1px solid var(--input-border);background:var(--input-bg);color:var(--text-primary);font-size:0.9rem;">
+        <option value="pink-dark">粉马卡龙(深)</option>
+        <option value="pink-light">粉马卡龙(浅)</option>
+        <option value="blue-dark">蓝马卡龙(深)</option>
+        <option value="blue-light">蓝马卡龙(浅)</option>
+      </select>
+    </div>
+  </div>
+
+</div>
+<div class="gear-btn" id="gearBtn" style="display:none;">设置</div>
 
   <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
   <script>
@@ -1206,14 +1197,14 @@
       const err = validateUsername(username); if (err) return alert(err);
       const resp = await fetch(`${BACKEND_URL}/api/v1/auth/login`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
+        body: JSON.stringify({ username, password, role: $('authRole').value })
       });
       const data = await resp.json();
       if (!resp.ok) return alert(data.error);
       jwtToken = data.token; localStorage.setItem('jwt_token', jwtToken);
       // 保存当前用户名，用于切换账号时隔离数据
       localStorage.setItem('current_username', data.username);
-      localStorage.setItem('user_role', data.role || 'student');
+      localStorage.setItem('user_role', data.role || '');
       if (data.username === 'Aaa') addAdminButtons();
       updateRoleBadge();
       var loginRole = localStorage.getItem('user_role');
@@ -3180,7 +3171,7 @@
         $('notifUnreadBadge').textContent = data.unread > 0 ? '('+data.unread+'条未读)' : '';
         if (!data.notifications || !data.notifications.length) { $('notifList').innerHTML = '<div class="empty-state">暂无通知</div>'; return; }
         $('notifList').innerHTML = data.notifications.map(n =>
-          '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--input-border);'+(n.is_read?'':'background:var(--accent-light);border-radius:8px;padding:10px;')+'">'+
+          '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--input-border);cursor:'+(n.class_id?'pointer':'default')+';'+(n.is_read?'':'background:var(--accent-light);border-radius:8px;padding:10px;')+'"'+(n.class_id?' onclick="openNotifLink('+n.id+','+n.class_id+',\''+n.type+'\')"':'')+'>'+
             '<div style="flex:1;"><div style="font-size:0.9rem;'+(n.is_read?'':'font-weight:600;')+'">'+n.content+'</div><div style="font-size:0.75rem;color:var(--text-secondary);margin-top:2px;">'+new Date(n.created_at).toLocaleString()+'</div></div>'+
             (!n.is_read ? '<button class="small-btn" data-notif-id="'+n.id+'" style="margin-left:8px;">已读</button>' : '')+
           '</div>'
@@ -3199,6 +3190,22 @@
       if (count > 0) { badge.textContent = count > 99 ? '99+' : count; badge.style.display = 'inline'; }
       else { badge.style.display = 'none'; }
     }
+    window.openNotifLink = async function(notifId, classId, type) {
+      if (classId) {
+        $('notifModal').style.display = 'none';
+        openClassHome(classId);
+        // Switch to announcements tab after loading
+        setTimeout(function() {
+          var tabs = document.querySelectorAll('.class-home-tab');
+          tabs.forEach(function(t) { t.classList.remove('active'); if(t.dataset.tab==='announcements') t.classList.add('active'); });
+          ['classLeaderboardArea','classTasksArea','classMembersArea','classAnnouncementsArea'].forEach(function(a){
+            document.getElementById(a).style.display = a==='classAnnouncementsArea'?'block':'none';
+          });
+        }, 500);
+      }
+      try { await fetch(BACKEND_URL+'/api/v1/notifications/read/'+notifId, { method:'PUT', headers: authHeaders() }); } catch(e) {}
+      loadNotifications();
+    };
     setInterval(async () => {
       if (!jwtToken || $('notifModal').style.display === 'flex') return;
       try {
