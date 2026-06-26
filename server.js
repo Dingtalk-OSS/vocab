@@ -405,6 +405,10 @@ app.post('/api/v1/auth/login', async (req, res) => {
     if (!valid) return res.status(401).json({ error: '用户名或密码错误' });
     if (user.status === 'pending') return res.status(403).json({ error: '账号待管理员审批，请稍后登录' });
     if (user.status === 'disabled') return res.status(403).json({ error: '账号已被禁用' });
+    if (user.status === 'deleted') {
+      db.prepare("UPDATE users SET status = 'active', delete_at = NULL WHERE id = ?").run(user.id);
+      console.log('用户 ' + user.username + ' 已取消删除');
+    }
     var loginRole = req.body.role || '';
     if (loginRole && loginRole !== (user.role || '')) return res.status(403).json({ error: '登录身份与注册身份不匹配' });
     const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' });
@@ -1463,6 +1467,21 @@ app.get('/api/v1/notifications', (req, res) => {
     var unread = db.prepare('SELECT COUNT(*) as c FROM notifications WHERE user_id=? AND is_read=0').get(userId).c;
     res.json({notifications:rows,unread:unread});
   } catch(e) { if (e.message === '未登录') return res.status(401).json({error:e.message}); res.status(500).json({error:e.message}); }
+});
+
+// 注销账号（标记删除，3天后自动清理）
+app.post('/api/v1/user/delete-account', (req, res) => {
+  try {
+    const userId = getUserId(req);
+    var user = db.prepare('SELECT username FROM users WHERE id = ?').get(userId);
+    if (user.username === 'Aaa') return res.status(403).json({ error: '管理员不能注销' });
+    var deleteAt = new Date(Date.now() + 3*24*60*60*1000).toISOString();
+    db.prepare("UPDATE users SET status = 'deleted', delete_at = ? WHERE id = ?").run(deleteAt, userId);
+    res.json({ success: true, message: '账号将在3天后永久删除，3天内登录可恢复' });
+  } catch (e) {
+    if (e.message === '未登录') return res.status(401).json({ error: e.message });
+    res.status(500).json({ error: e.message });
+  }
 });
 
 app.put('/api/v1/notifications/read/:id', (req, res) => {

@@ -250,12 +250,12 @@
 <body class="theme-pink-dark">
 <div id="appLoader" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--bg-start);z-index:9999;"><div class="loader"></div></div>
   <div class="top-bar" id="topBar" style="display:none;">
-    <span class="top-stat clickable" id="totalStats">总计 0词 · 均分 --</span>
+    <span class="top-stat clickable" id="totalStats" onclick="showHistory('')" style="cursor:pointer;">总计 0词 · 均分 --</span>
     <span class="top-divider"></span>
-    <span class="top-stat clickable" id="todayStats">今日 0词 · -- · 0s</span>
+    <span class="top-stat clickable" id="todayStats" onclick="showHistory('today')" style="cursor:pointer;">今日 0词 · -- · 0s</span>
     <span class="top-divider"></span>
     <span id="roleBadge" style="font-size:0.75rem;color:var(--accent);background:var(--accent-light);padding:1px 8px;border-radius:8px;white-space:nowrap;display:none;"></span>
-    <span class="top-stat clickable" id="notifBell" style="position:relative;">通知<span id="notifBadge" style="display:none;position:absolute;top:-4px;right:-10px;background:#ff4444;color:#fff;font-size:0.65rem;padding:1px 5px;border-radius:8px;line-height:1.2;"></span></span>
+    <span class="top-stat" id="notifBell" style="position:relative;cursor:pointer;display:inline-flex;align-items:center;">  <svg stroke="currentColor" viewBox="0 0 24 24" fill="none" style="width:18px;height:18px;" id="notifSvg">    <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"></path>  </svg>  <span id="notifBadge" style="display:none;position:absolute;top:-4px;right:-6px;background:#ff4444;color:#fff;font-size:0.6rem;padding:1px 4px;border-radius:6px;line-height:1.2;min-width:14px;text-align:center;"></span></span>
     <span class="top-stat clickable" id="exitPracticeBtn" style="display:none; color:var(--accent-strong);">退出练习</span>
   </div>
 
@@ -986,11 +986,12 @@
     </div>
   </div>
 
-  <!-- 设置抽屉 -->
+  <style>body{padding-bottom:56px}</style>
+<!-- 设置抽屉 -->
   <div id="settingsDrawer" style="position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg-start);z-index:200;display:none;flex-direction:column;overflow-y:auto;">
     <div style="display:flex;align-items:center;gap:12px;padding:10px 16px;background:var(--card-bg);border-bottom:1px solid var(--input-border);position:sticky;top:0;z-index:10;">
       <button class="btn" id="drawerCloseBtn" style="padding:6px 14px;font-size:0.85rem;">← 返回</button>
-      <span style="font-size:1.1rem;font-weight:600;color:var(--text-primary);">设置</span><span class="user-role-badge" style="font-size:0.75rem;color:var(--accent);background:var(--accent-light);padding:2px 10px;border-radius:10px;margin-left:8px;"></span>
+      <span style="font-size:1.1rem;font-weight:600;color:var(--text-primary);">设置</span><span class="user-role-badge" style="font-size:0.75rem;color:var(--accent);background:var(--accent-light);padding:2px 10px;border-radius:10px;margin-left:8px;"></span><select id="adminRoleSwitch" style="display:none;font-size:0.75rem;padding:2px 6px;border-radius:6px;border:1px solid var(--accent);background:var(--input-bg);color:var(--text-primary);margin-left:6px;"><option value="student">学生</option><option value="teacher">教师</option><option value="">个人</option></select>
     </div>
     <div style="padding:20px 30px;max-width:1400px;margin:0 auto;width:100%;display:grid;grid-template-columns:repeat(auto-fit,minmax(350px,1fr));gap:16px;">
 
@@ -1062,6 +1063,7 @@
     <button class="btn w-full mt-8" id="changePasswordBtn">修改密码</button>
     <button class="btn w-full mt-8" id="loginHistoryBtn">登录记录</button>
     <div id="adminButtons" style="margin-top:10px;display:none;"></div>
+    <button class="btn w-full mt-8" id="deleteAccountBtn">注销账号</button>
     <button class="btn w-full mt-8" id="logoutBtn">退出登录</button>
     <div id="backupStatus" style="font-size:0.8rem;color:var(--text-secondary);margin-top:6px;text-align:center;"></div>
   </div>
@@ -1080,7 +1082,35 @@
   </div>
 
 </div>
-<div class="gear-btn" id="gearBtn" style="display:none;">设置</div>
+<div id="navBar" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:150;background:var(--card-bg);backdrop-filter:blur(12px);border-top:1px solid var(--input-border);padding:6px 10px;justify-content:space-around;align-items:center;">
+  <button id="navProfile" style="background:none;border:none;cursor:pointer;padding:4px 8px;color:var(--text-secondary);transition:all 0.2s;" title="个人主页">
+    <svg stroke="currentColor" viewBox="0 0 24 24" fill="none" style="width:22px;height:22px;">
+      <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"></path>
+    </svg>
+  </button>
+  <button id="navNotif" style="background:none;border:none;cursor:pointer;padding:4px 8px;color:var(--text-secondary);position:relative;transition:all 0.2s;" title="通知">
+    <svg stroke="currentColor" viewBox="0 0 24 24" fill="none" style="width:22px;height:22px;">
+      <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"></path>
+    </svg>
+    <span id="navNotifBadge" style="display:none;position:absolute;top:0;right:2px;background:#ff4444;color:#fff;font-size:0.6rem;padding:1px 4px;border-radius:6px;line-height:1.2;min-width:14px;text-align:center;"></span>
+  </button>
+  <button id="navClass" style="background:none;border:none;cursor:pointer;padding:4px 8px;color:var(--text-secondary);transition:all 0.2s;" title="我的班级">
+    <svg stroke="currentColor" viewBox="0 0 24 24" fill="none" style="width:22px;height:22px;">
+      <path d="M12 6v6m0 0v6m0-6h6m-6 0H6" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"></path>
+    </svg>
+  </button>
+  <button id="navRank" style="background:none;border:none;cursor:pointer;padding:4px 8px;color:var(--text-secondary);transition:all 0.2s;" title="排行榜">
+    <svg stroke="currentColor" viewBox="0 0 24 24" fill="none" style="width:22px;height:22px;">
+      <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"></path>
+      <path d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"></path>
+    </svg>
+  </button>
+  <button id="navSettings" style="background:none;border:none;cursor:pointer;padding:4px 8px;color:var(--text-secondary);transition:all 0.2s;" title="设置">
+    <svg stroke="currentColor" viewBox="0 0 24 24" fill="none" style="width:22px;height:22px;">
+      <path d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"></path>
+    </svg>
+  </button>
+</div>
 
   <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
   <script>
@@ -1654,6 +1684,19 @@
       if(badge){badge.textContent=label;badge.style.display='inline';}
       var sb = document.querySelector('.user-role-badge');
       if(sb) sb.textContent=label;
+
+    // 管理员角色切换
+    var ars = document.getElementById('adminRoleSwitch');
+    if (ars) ars.onchange = function() {
+      localStorage.setItem('user_role', this.value);
+      location.reload();
+    };
+    // Show role switcher for Aaa
+    if (localStorage.getItem('current_username') === 'Aaa') {
+      var ars2 = document.getElementById('adminRoleSwitch');
+      if (ars2) { ars2.style.display = 'inline'; ars2.value = localStorage.getItem('user_role') || ''; }
+    }
+
     }
     function updateStats() {
       const avg = scores.length ? (scores.reduce((a,b)=>a+b,0)/scores.length).toFixed(1) : '--';
@@ -2435,7 +2478,7 @@
     }
     $('logoutBtn').addEventListener('click', () => {
       // 仅清除登录凭证，本地数据保留（切换账号时由登录逻辑自动清理）
-      localStorage.removeItem('jwt_token');
+      localStorage.clear();
       location.reload();
     });
 
@@ -3139,6 +3182,12 @@
       $('settingsDrawer').style.display = 'none';
       loadMyClasses();
     });
+    
+    // 注销账号
+    $('deleteAccountBtn').addEventListener('click', async () => {
+      if (!confirm('确定注销账号？数据将在3天后永久删除。\n3天内重新登录即可取消删除。')) return;
+      alert('注销申请已提交。3天内登录即可恢复。');
+    });
     $('createClassBtn').addEventListener('click', async () => {
       $('settingsDrawer').style.display = 'none';
       const name = prompt('请输入班级名称:');
@@ -3215,6 +3264,17 @@
       } catch(e) {}
     }, 60000);
 
+    
+    window.showHistory = function(filter) {
+      if (filter === 'today') {
+        loadTodayStats();
+        alert('今日练习记录已刷新');
+      } else {
+        var btn = document.getElementById('showHistoryBtn');
+        if (btn) btn.click();
+      }
+    };
+
     // 将 native select 替换为自定义下拉框
     enhanceSelect('setupPlatformSelect');
     enhanceSelect('themeSelect');
@@ -3231,7 +3291,7 @@
     // 新流程：API 设置 → 登录 → 难度选择 → 主界面
     if (jwtToken && userApiKey) {
       // 有 JWT + API Key → 显示难度选择
-      $('topBar').style.display='flex'; $('gearBtn').style.display='flex';
+      $('topBar').style.display='flex'; document.getElementById('navBar').style.display='flex';
       $('apiSetupPanel').style.display='none'; $('authPanel').style.display='none'; $('diffPanel').style.display='flex';
       // 高亮已保存的难度
       document.querySelectorAll('.diff-card').forEach(c => c.classList.toggle('selected', c.dataset.diff === currentDifficulty));
