@@ -1092,6 +1092,49 @@
       div.querySelector('.confirm-cancel').onclick = () => div.remove();
       div.querySelector('.confirm-ok').onclick = () => { div.remove(); if (cb) cb(); };
     }
+    function enhanceSelect(id) {
+      var sel = document.getElementById(id);
+      if (!sel || sel.dataset.enhanced) return;
+      sel.dataset.enhanced = '1';
+      sel.style.display = 'none';
+      var wrap = document.createElement('div');
+      wrap.className = 'cselect';
+      sel.parentNode.insertBefore(wrap, sel);
+      var trigger = document.createElement('div');
+      trigger.className = 'cselect-trigger';
+      trigger.textContent = sel.options[sel.selectedIndex]?.textContent || sel.options[0]?.textContent || '';
+      var dropdown = document.createElement('div');
+      dropdown.className = 'cselect-dropdown';
+      function buildOptions() {
+        dropdown.innerHTML = '';
+        Array.from(sel.options).forEach(function(opt) {
+          var item = document.createElement('div');
+          item.className = 'cselect-option' + (opt.selected ? ' selected' : '');
+          item.textContent = opt.textContent;
+          item.dataset.value = opt.value;
+          item.addEventListener('click', function(e) {
+            e.stopPropagation();
+            sel.value = opt.value;
+            sel.dispatchEvent(new Event('change', { bubbles: true }));
+            trigger.textContent = opt.textContent;
+            dropdown.querySelectorAll('.cselect-option').forEach(function(o) { o.classList.remove('selected'); });
+            item.classList.add('selected');
+            wrap.classList.remove('open');
+          });
+          dropdown.appendChild(item);
+        });
+      }
+      buildOptions();
+      wrap.appendChild(trigger);
+      wrap.appendChild(dropdown);
+      trigger.addEventListener('click', function() { wrap.classList.toggle('open'); });
+      sel.addEventListener('change', function() {
+        var opt = sel.options[sel.selectedIndex];
+        if (opt) trigger.textContent = opt.textContent;
+        dropdown.querySelectorAll('.cselect-option').forEach(function(o) { o.classList.toggle('selected', o.dataset.value === sel.value); });
+      });
+      document.addEventListener('click', function(e) { if (!wrap.contains(e.target)) wrap.classList.remove('open'); });
+    }
     // 登录
     $('loginBtn').addEventListener('click', async () => {
       var u = document.getElementById('authUsername').value.trim(), p = document.getElementById('authPassword').value.trim();
