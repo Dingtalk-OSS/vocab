@@ -1092,6 +1092,32 @@
       div.querySelector('.confirm-cancel').onclick = () => div.remove();
       div.querySelector('.confirm-ok').onclick = () => { div.remove(); if (cb) cb(); };
     }
+    // 登录
+    $('loginBtn').addEventListener('click', async () => {
+      var u = document.getElementById('authUsername').value.trim(), p = document.getElementById('authPassword').value.trim();
+      if (!u || !p) return alert('请输入用户名和密码');
+      var r = await fetch(BACKEND_URL+'/api/v1/auth/login', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ username:u, password:p, role:document.getElementById('authRole').value }) });
+      var d = await r.json();
+      if (!r.ok) return alert(d.error);
+      localStorage.setItem('jwt_token', d.token); localStorage.setItem('current_username', d.username); localStorage.setItem('user_role', d.role||'');
+      if (d.username === 'Aaa') addAdminButtons();
+      updateRoleBadge();
+      var lr = localStorage.getItem('user_role');
+      if (lr === 'teacher') { document.getElementById('createClassBtn').style.display='flex'; document.getElementById('joinClassBtn').style.display='none'; }
+      document.getElementById('topBar').style.display='flex'; try { document.getElementById('gearBtn').style.display='flex'; } catch(e2) {}
+      document.getElementById('authPanel').style.display='none'; document.getElementById('diffPanel').style.display='flex';
+    });
+    // 注册
+    $('registerBtn').addEventListener('click', async () => {
+      var u = document.getElementById('authUsername').value.trim(), p = document.getElementById('authPassword').value.trim();
+      if (!u || !p) return alert('请输入用户名和密码');
+      if (p.length < 4) return alert('密码至少 4 个字符');
+      var r = await fetch(BACKEND_URL+'/api/v1/auth/register', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ username:u, password:p, role:document.getElementById('authRole').value }) });
+      var d = await r.json();
+      alert(d.message || d.error || '注册成功');
+    });
+    // 忘记密码
+    $('forgotPwdBtn').addEventListener('click', () => { document.getElementById('forgotPwdModal').style.display = 'flex'; });
     $('markMemorizedBtn').addEventListener('click', () => {
       if (!currentWordData) return;
       const word = currentWordData.word;
@@ -1203,7 +1229,6 @@
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <script>
 try { document.getElementById("appLoader").style.display = "none"; } catch(e) {}
-    var gb = document.getElementById("gearBtn"); if (gb) gb.addEventListener("click", function() { document.getElementById("settingsDrawer").style.display = "flex"; loadApiSettingsUI(); });
 const BACKEND_URL = "";
 let jwtToken = localStorage.getItem("jwt_token") || "";
 const userKey = (k) => { const u = localStorage.getItem("current_username"); return u ? k + "_" + u : k; };
@@ -2437,7 +2462,7 @@ function updateRoleBadge() {
     });
 
     // 设置齿轮按钮
-    if (gb) gb.addEventListener('click', () => { $('settingsDrawer').style.display = 'flex'; loadApiSettingsUI(); });
+    var gb = document.getElementById('gearBtn'); if (gb) gb.addEventListener('click', () => { $('settingsDrawer').style.display = 'flex'; loadApiSettingsUI(); });
     // 计时器开关
     $('timerToggle').checked = timerEnabled;
     if (timerEnabled) $('timerToggleTrack').classList.add('on');
@@ -2854,7 +2879,7 @@ function updateRoleBadge() {
     // 新流程：API 设置 → 登录 → 难度选择 → 主界面
     if (jwtToken && userApiKey) {
       // 有 JWT + API Key → 显示难度选择
-      $("topBar").style.display="flex";
+      $("topBar").style.display="flex"; try { document.getElementById('gearBtn').style.display = 'flex'; } catch(e) {}
       $('apiSetupPanel').style.display='none'; $('authPanel').style.display='none'; $('diffPanel').style.display='flex';
       // 高亮已保存的难度
       document.querySelectorAll('.diff-card').forEach(c => c.classList.toggle('selected', c.dataset.diff === currentDifficulty));
