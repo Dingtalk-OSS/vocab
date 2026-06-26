@@ -1114,6 +1114,7 @@
 
   <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
   <script>
+    try { document.getElementById('appLoader').style.display = 'none'; } catch(e) {}
     const BACKEND_URL = '';
     let jwtToken = localStorage.getItem('jwt_token') || '';
     // 按用户名隔离本地数据（必须在其他数据之前定义）
@@ -2236,9 +2237,11 @@
       } catch(e) { $('teacherCreateStatus').textContent = '创建失败'; }
       $('batchTeacherBtn').disabled = false;
     });
-    $('adminPanelClose').addEventListener('click', () => $('adminPanelModal').style.display = 'none');
-    $('changeDifficultyBtn').addEventListener('click', () => {
-      $('settingsDrawer').classList.remove('open');
+    var acp = document.getElementById('adminPanelClose');
+    if (acp) acp.addEventListener('click', () => $('adminPanelModal').style.display = 'none');
+    var cdb = document.getElementById('changeDifficultyBtn');
+    if (cdb) cdb.addEventListener('click', () => {
+      $('settingsDrawer').style.display = 'none';
       $('mainUI').style.display = 'none'; $('diffPanel').style.display = 'flex';
       document.querySelectorAll('.diff-card').forEach(c => c.classList.toggle('selected', c.dataset.diff === currentDifficulty));
       $('startChallengeBtn').style.display = document.querySelector('.diff-card.selected') ? 'flex' : 'none';
@@ -2351,7 +2354,8 @@
       } catch(e) { $('wbBatchStatus').textContent = '上传失败'; }
       e.target.value = '';
     });
-    $('aiToolsBtn').addEventListener('click', () => { $('settingsDrawer').classList.remove('open'); $('aiToolsModal').style.display = 'flex'; });
+    var atb = document.getElementById('aiToolsBtn');
+    if (atb) atb.addEventListener('click', () => { $('settingsDrawer').style.display = 'none'; $('aiToolsModal').style.display = 'flex'; });
     $('aiToolsClose').addEventListener('click', () => $('aiToolsModal').style.display = 'none');
 
     // 智能翻译（新）
@@ -2875,7 +2879,8 @@
     });
 
     // 设置齿轮按钮
-    $('gearBtn').addEventListener('click', () => { $('settingsDrawer').style.display = 'flex'; loadApiSettingsUI(); });
+    var gb = document.getElementById('gearBtn');
+    if (gb) gb.addEventListener('click', () => { $('settingsDrawer').style.display = 'flex'; loadApiSettingsUI(); });
     // 计时器开关
     $('timerToggle').checked = timerEnabled;
     if (timerEnabled) $('timerToggleTrack').classList.add('on');
@@ -3178,7 +3183,8 @@
       } catch(e) { $('announcementStatus').textContent = '发布失败'; }
       $('announcementSubmitBtn').disabled = false;
     });
-    $('classLeaderboardBtn').addEventListener('click', () => {
+    var clb = document.getElementById('classLeaderboardBtn');
+    if (clb) clb.addEventListener('click', () => {
       $('settingsDrawer').style.display = 'none';
       loadMyClasses();
     });
@@ -3305,8 +3311,8 @@
     }
     // 管理员账号 (Aaa) 动态添加按钮
     if (localStorage.getItem('current_username') === 'Aaa') addAdminButtons();
-    // 隐藏加载动画（加 try 确保执行）
-    try { const appLoader = document.getElementById('appLoader'); if (appLoader) appLoader.style.display = 'none'; } catch(le) {}
+    // 隐藏加载动画
+    try { document.getElementById('appLoader').style.display = 'none'; } catch(e) {}
   </script>
 </body>
 </html>
