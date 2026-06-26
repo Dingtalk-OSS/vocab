@@ -1240,7 +1240,7 @@
       updateRoleBadge();
       var loginRole = localStorage.getItem('user_role');
       if (loginRole === 'teacher') { document.getElementById('createClassBtn').style.display = 'flex'; document.getElementById('joinClassBtn').style.display = 'none'; }
-      $('topBar').style.display = 'flex'; $('gearBtn').style.display = 'flex';
+      $('topBar').style.display = 'flex'; $('gearBtn').style.display = 'flex'; document.getElementById('navBar').style.display = 'flex';
       $('authPanel').style.display = 'none'; $('diffPanel').style.display = 'flex';
     });
     $('registerBtn').addEventListener('click', async () => {
