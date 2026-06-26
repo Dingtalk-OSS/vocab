@@ -128,6 +128,7 @@
     .modal-close-btn:hover { background:var(--accent); color:#fff; border-color:var(--accent); transform:rotate(90deg) scale(1.1); }
     .drawer-close-btn { position:absolute; top:16px; right:16px; width:36px; height:36px; background:transparent; border:1px solid var(--input-border); border-radius:50%; color:var(--text-secondary); font-size:1.2rem; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.25s; }
     .drawer-close-btn:hover { background:var(--accent); color:#fff; border-color:var(--accent); transform:rotate(90deg) scale(1.1); }
+    @media (max-width:600px) { body { padding-bottom:56px; } }
     .gear-btn { position:fixed; bottom:25px; right:25px; width:50px; height:50px; background:var(--card-bg); backdrop-filter:blur(10px); border-radius:50%; display:flex; align-items:center; justify-content:center; color:var(--text-primary); border:1px solid var(--input-border); cursor:pointer; z-index:150; font-size:0.9rem; font-weight:600; transition:all 0.3s; }
     .gear-btn:hover { transform:rotate(30deg); background:var(--accent-light); box-shadow:0 0 0 1px var(--accent), 0 0 20px var(--accent-light); border-color:transparent; }
     .tab-btn { background:transparent; border:1px solid var(--accent); color:var(--text-primary); padding:6px 16px; border-radius:20px; cursor:pointer; margin:0 4px; }
@@ -986,8 +987,7 @@
     </div>
   </div>
 
-  <style>body{padding-bottom:56px}</style>
-<!-- 设置抽屉 -->
+  <!-- 设置抽屉 -->
   <div id="settingsDrawer" style="position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg-start);z-index:200;display:none;flex-direction:column;overflow-y:auto;">
     <div style="display:flex;align-items:center;gap:12px;padding:10px 16px;background:var(--card-bg);border-bottom:1px solid var(--input-border);position:sticky;top:0;z-index:10;">
       <button class="btn" id="drawerCloseBtn" style="padding:6px 14px;font-size:0.85rem;">← 返回</button>
@@ -1082,7 +1082,7 @@
   </div>
 
 </div>
-<div id="navBar" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:150;background:var(--card-bg);backdrop-filter:blur(12px);border-top:1px solid var(--input-border);padding:6px 10px;justify-content:space-around;align-items:center;">
+<div id="navBar" style="position:fixed;bottom:0;left:0;right:0;z-index:150;background:var(--card-bg);backdrop-filter:blur(12px);border-top:1px solid var(--input-border);padding:6px 10px;justify-content:space-around;align-items:center;">
   <button id="navProfile" style="background:none;border:none;cursor:pointer;padding:4px 8px;color:var(--text-secondary);transition:all 0.2s;" title="个人主页">
     <svg stroke="currentColor" viewBox="0 0 24 24" fill="none" style="width:22px;height:22px;">
       <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"></path>
@@ -3302,12 +3302,14 @@
       // 高亮已保存的难度
       document.querySelectorAll('.diff-card').forEach(c => c.classList.toggle('selected', c.dataset.diff === currentDifficulty));
       $('startChallengeBtn').style.display = document.querySelector('.diff-card.selected') ? 'flex' : 'none';
-    } else if (userApiKey) {
-      // 有 API Key 但没 JWT → 显示登录
-      $('apiSetupPanel').style.display='none'; $('authPanel').style.display='flex';
     } else {
-      // 都没有 → 显示 API 设置
-      $('authPanel').style.display='none'; $('mainUI').style.display='none';
+      // 未登录 → 隐藏导航栏
+      try { document.getElementById('navBar').style.display = 'none'; } catch(e) {}
+      if (userApiKey) {
+        $('apiSetupPanel').style.display='none'; $('authPanel').style.display='flex';
+      } else {
+        $('authPanel').style.display='none'; $('mainUI').style.display='none';
+      }
     }
     // 管理员账号 (Aaa) 动态添加按钮
     if (localStorage.getItem('current_username') === 'Aaa') addAdminButtons();
