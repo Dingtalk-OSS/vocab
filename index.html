@@ -447,6 +447,7 @@
 	          <button class="tab-btn" data-diff="HS">HS</button>
 	          <button class="tab-btn" data-diff="TOEFL">TOEFL</button>
 	          <button class="tab-btn" data-diff="IELTS">IELTS</button>
+	          <button class="tab-btn" data-diff="GK">GK</button>
         </div>
       </div>
       <div id="challengeDurArea" style="display:none; margin-bottom:10px;">
@@ -696,6 +697,7 @@
           <label style="font-size:0.85rem;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" value="HS"> HS</label>
           <label style="font-size:0.85rem;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" value="TOEFL"> TOEFL</label>
           <label style="font-size:0.85rem;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" value="IELTS"> IELTS</label>
+          <label style="font-size:0.85rem;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" value="GK"> GK</label>
         </div>
         <div id="wbAddStatus" style="font-size:0.85rem; margin-top:6px;"></div>
       </div>
@@ -1242,6 +1244,7 @@
       updateRoleBadge();
       var loginRole = localStorage.getItem('user_role');
       if (loginRole === 'teacher') { document.getElementById('createClassBtn').style.display = 'flex'; document.getElementById('joinClassBtn').style.display = 'none'; }
+      document.getElementById('topBar').style.display = 'flex'; document.getElementById('navBar').style.display = 'flex';
       $('authPanel').style.display = 'none'; $('diffPanel').style.display = 'flex';
     });
     $('registerBtn').addEventListener('click', async () => {

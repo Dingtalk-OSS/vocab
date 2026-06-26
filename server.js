@@ -556,7 +556,7 @@ const TRANSLATE_PROMPTS = {
 
 // 生成单词
 // 难度字符串→数值映射（用于 AI prompt 分级）
-function diffToNum(s) { return {L1:1,L2:2,L3:3,L4:4,L5:5,L6:6,CET4:4,CET6:5,kaoyan:6,MS:1,HS:2,TOEFL:5,IELTS:6}[s] || 1; }
+function diffToNum(s) { return {L1:1,L2:2,L3:3,L4:4,L5:5,L6:6,CET4:4,CET6:5,kaoyan:6,MS:1,HS:2,TOEFL:5,IELTS:6,GK:3}[s] || 1; }
 
 app.post('/api/v1/words/generate', async (req, res) => {
   try {
@@ -612,7 +612,8 @@ app.post('/api/v1/words/generate', async (req, res) => {
         MS: ['apple','ball','cat','dog','egg','fish','green','happy','ice','jump','kite','lion','milk','name','orange'],
         HS: ['ability','absorb','access','achieve','acquire','adapt','adequate','adjust','admit','adopt','advance','advantage'],
         TOEFL: ['biology','chemistry','economics','environment','geology','hypothesis','laboratory','molecule','phenomenon','synthesis'],
-        IELTS: ['academic','analysis','assessment','conclusion','correlation','demonstrate','evaluate','identify','interpret','validity']
+        IELTS: ['academic','analysis','assessment','conclusion','correlation','demonstrate','evaluate','identify','interpret','validity'],
+        GK: ['ability','absorb','access','achieve','acquire','adapt','adequate','adjust','admit','adopt','advance','advantage','advertise','advice','affair','affect','afford','agree','allow','amount','announce','anxiety','apparent','appeal','apply','appoint','appreciate','approach','appropriate','approve','argue','arrange','article','aspect','assess','assign','assist','associate','assume','assure','atmosphere','attach','attempt','attend','attitude','attract','audience','authority','available','average','avoid','aware','balance','barrier','behaviour','benefit','blame','bother','boundary','budget','burden','campaign','capable','capacity','capture','challenge','character','circumstance','claim','clarify','classify','climate','collapse','command','comment','commit','communicate','community','companion','compare','compete','complain','complete','complex','complicate','component','compose','comprehension','concentrate','concept','concern','conclude','condition','conduct','conference','confidence','confirm','conflict','confuse','connect','conscious','consequence','conservation','considerable','consist','constant','construct','consult','consume','contact','contain','contemporary','content','contest','context','contract','contrast','contribute','controversy','convenient','convention','convince','cooperate','coordinate','copyright','core','corporate','correct','correspond','counsel','count','creature','credit','crime','crisis','criterion','critical','cultivate','curriculum','custom','cycle','damage','debate','decade','decline','decorate','decrease','defeat','defend','define','definite','degree','delay','deliberate','delicate','deliver','demand','demonstrate','deny','depart','depend','deposit','depress','derive','describe','deserve','design','desperate','despite','destination','destroy','detail','detect','determine','device','devote','diagnose','dictate','differ','digest','dignity','dilemma','dimension','diminish','diploma','direct','disagree','disappear','disaster','discipline','discount','discover','discrimination','discuss','disease','dismiss','disorder','display','dispose','dispute','distance','distinct','distinguish','distribute','district','disturbance','diverse','document','domestic','dominant','donation','dramatic','drastic','duration','dynamic']
       };
       var fbList = fallbackWords[diffStr];
       if (fbList && fbList.length) {
