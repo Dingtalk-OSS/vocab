@@ -258,12 +258,7 @@
     <span id="roleBadge" style="font-size:0.75rem;color:var(--accent);background:var(--accent-light);padding:1px 8px;border-radius:8px;white-space:nowrap;display:none;"></span>
     <span class="top-stat" id="notifBell" style="position:relative;cursor:pointer;display:inline-flex;align-items:center;">  <svg stroke="currentColor" viewBox="0 0 24 24" fill="none" style="width:18px;height:18px;" id="notifSvg">    <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"></path>  </svg>  <span id="notifBadge" style="display:none;position:absolute;top:-4px;right:-6px;background:#ff4444;color:#fff;font-size:0.6rem;padding:1px 4px;border-radius:6px;line-height:1.2;min-width:14px;text-align:center;"></span></span>
     <span class="top-stat clickable" id="exitPracticeBtn" style="display:none; color:var(--accent-strong);">退出练习</span>
-<span class="top-divider"></span>
-<span class="top-stat clickable" id="navProfile">主页</span>
-<span class="top-stat clickable" id="navNotif">通知<span id="navNotifBadge" style="display:none;font-size:0.65rem;color:#ff4444;margin-left:2px;"></span></span>
-<span class="top-stat clickable" id="navClass">班级</span>
-<span class="top-stat clickable" id="navRank">排行</span>
-<span class="top-stat clickable" id="navSettings">设置</span>
+
   </div>
 
   <div class="app">
@@ -1203,9 +1198,12 @@
         isSubmitted = true; $('submitBtn').disabled = true; // 批改后禁用
       } catch(e) { $('resultArea').innerHTML = `<div class="error-text">${e.message}</div>`; $('submitBtn').disabled = false; }
 
+<div class="gear-btn" id="gearBtn" style="display:none;">设置</div>
+
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <script>
 try { document.getElementById("appLoader").style.display = "none"; } catch(e) {}
+    var gb = document.getElementById("gearBtn"); if (gb) gb.addEventListener("click", function() { document.getElementById("settingsDrawer").style.display = "flex"; loadApiSettingsUI(); });
 const BACKEND_URL = "";
 let jwtToken = localStorage.getItem("jwt_token") || "";
 const userKey = (k) => { const u = localStorage.getItem("current_username"); return u ? k + "_" + u : k; };
